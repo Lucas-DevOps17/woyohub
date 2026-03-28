@@ -2,51 +2,52 @@ import Link from "next/link";
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-surface-50 flex flex-col">
-      {/* Nav */}
-      <nav className="flex items-center justify-between px-6 py-4 max-w-6xl mx-auto w-full">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-brand-600 rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-sm">W</span>
-          </div>
-          <span className="font-semibold text-lg text-surface-900">WOYOhub</span>
+    <div className="min-h-screen flex flex-col" style={{ background: "var(--surface)", fontFamily: "'Inter', system-ui, sans-serif" }}>
+      <nav className="flex items-center justify-between px-6 py-5 max-w-6xl mx-auto w-full">
+        <div>
+          <span className="font-display text-xl font-extrabold" style={{ color: "var(--on-surface)" }}>WOYOhub</span>
         </div>
         <Link
           href="/login"
-          className="px-4 py-2 text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 rounded-lg transition-colors"
+          className="px-6 py-2.5 rounded-full text-sm font-bold text-white no-underline btn-primary"
         >
           Log in
         </Link>
       </nav>
 
-      {/* Hero */}
       <main className="flex-1 flex flex-col items-center justify-center px-6 text-center max-w-3xl mx-auto">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-50 border border-brand-200 text-brand-700 text-sm font-medium mb-6">
-          <span className="w-2 h-2 bg-brand-500 rounded-full animate-pulse" />
-          Track · Learn · Level Up
+        <div
+          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-bold mb-8"
+          style={{ color: "var(--primary)", background: "var(--surface-low)" }}
+        >
+          <span className="w-2 h-2 rounded-full animate-pulse" style={{ background: "var(--primary)" }} />
+          Intellectual Ascent
         </div>
 
-        <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-surface-900 tracking-tight leading-tight">
-          Your learning journey,{" "}
-          <span className="text-brand-600">gamified</span>
+        <h1
+          className="font-display text-5xl sm:text-6xl md:text-7xl font-extrabold leading-[1.05]"
+          style={{ color: "var(--on-surface)", letterSpacing: -2 }}
+        >
+          Your learning
+          <br />
+          journey, <span style={{ color: "var(--primary)" }}>curated</span>
         </h1>
 
-        <p className="mt-6 text-lg text-surface-500 max-w-xl leading-relaxed">
-          Track courses from any platform, build your project portfolio, follow
-          career roadmaps, and stay motivated with XP, streaks, and achievements.
+        <p className="mt-6 text-lg leading-relaxed max-w-xl" style={{ color: "var(--on-surface-variant)" }}>
+          Track courses from any platform, build your project portfolio,
+          follow career roadmaps, and stay motivated with XP, streaks, and achievements.
         </p>
 
-        <div className="mt-8">
+        <div className="mt-10">
           <Link
             href="/login"
-            className="px-6 py-3 text-base font-medium text-white bg-brand-600 hover:bg-brand-700 rounded-xl transition-colors shadow-sm"
+            className="px-8 py-4 rounded-full text-base font-bold text-white no-underline btn-primary shadow-float"
           >
-            Log in
+            Start Learning
           </Link>
         </div>
 
-        {/* Feature pills */}
-        <div className="mt-16 grid grid-cols-2 sm:grid-cols-4 gap-3 w-full max-w-lg">
+        <div className="mt-20 grid grid-cols-2 sm:grid-cols-4 gap-4 w-full max-w-lg">
           {[
             { icon: "📚", label: "Course tracking" },
             { icon: "🗺️", label: "Career roadmaps" },
@@ -55,10 +56,11 @@ export default function HomePage() {
           ].map((item) => (
             <div
               key={item.label}
-              className="flex flex-col items-center gap-2 p-4 rounded-xl bg-white border border-surface-200 shadow-sm"
+              className="flex flex-col items-center gap-2.5 p-5 rounded-3xl"
+              style={{ background: "var(--surface-card)" }}
             >
               <span className="text-2xl">{item.icon}</span>
-              <span className="text-xs font-medium text-surface-600">
+              <span className="text-xs font-semibold" style={{ color: "var(--on-surface-variant)" }}>
                 {item.label}
               </span>
             </div>
@@ -66,8 +68,7 @@ export default function HomePage() {
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="py-6 text-center text-sm text-surface-400">
+      <footer className="py-8 text-center text-sm" style={{ color: "var(--outline)" }}>
         Built with focus · WOYOhub © {new Date().getFullYear()}
       </footer>
     </div>

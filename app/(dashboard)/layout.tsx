@@ -1,4 +1,5 @@
 import { Sidebar } from "@/components/layout/sidebar";
+import { ThemeProvider } from "@/components/ui/theme-provider";
 
 export default function DashboardLayout({
   children,
@@ -6,13 +7,11 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-surface-50">
-      <Sidebar />
-      <main className="lg:pl-60">
-        <div className="p-6 lg:p-8 pt-16 lg:pt-8 max-w-6xl mx-auto">
-          {children}
-        </div>
-      </main>
-    </div>
+    <ThemeProvider>
+      <div className="min-h-screen" style={{ background: "var(--surface)" }}>
+        <Sidebar />
+        <main className="lg:pl-[220px]">{children}</main>
+      </div>
+    </ThemeProvider>
   );
 }

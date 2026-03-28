@@ -1,184 +1,86 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import type { Platform, Skill } from "@/types";
 
-const PLATFORMS: Platform[] = [
-  "Coursera",
-  "YouTube",
-  "Udemy",
-  "freeCodeCamp",
-  "Codecademy",
-  "Pluralsight",
-  "LinkedIn Learning",
-  "edX",
-  "Khan Academy",
-  "Other",
-];
+const PLATFORMS: Platform[] = ["Coursera", "YouTube", "Udemy", "freeCodeCamp", "Codecademy", "Pluralsight", "LinkedIn Learning", "edX", "Khan Academy", "Other"];
 
-export default function NewCoursePage() {
+function NewCourseForm() {
   const [title, setTitle] = useState("");
   const [platform, setPlatform] = useState<Platform>("YouTube");
   const [url, setUrl] = useState("");
   const [totalUnits, setTotalUnits] = useState(1);
-  const [skillId, setSkillId] = useState<string>("");
+  const [skillId, setSkillId] = useState("");
   const [skills, setSkills] = useState<Skill[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
   const router = useRouter();
   const supabase = createClient();
 
   useEffect(() => {
-    async function loadSkills() {
-      const { data } = await supabase
-        .from("skills")
-        .select("*")
-        .order("category", { ascending: true });
-      if (data) setSkills(data);
-    }
-    loadSkills();
+    supabase.from("skills").select("*").order("category").then(({ data }) => { if (data) setSkills(data); });
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setLoading(true);
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      setError("Not logged in");
-      setLoading(false);
-      return;
-    }
-
-    const { error: insertError } = await supabase.from("courses").insert({
-      user_id: user.id,
-      title,
-      platform,
-      url: url || null,
-      total_units: totalUnits,
-      skill_id: skillId || null,
-    });
-
-    if (insertError) {
-      setError(insertError.message);
-      setLoading(false);
-    } else {
-      router.push("/courses");
-      router.refresh();
-    }
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setError("Not logged in"); setLoading(false); return; }
+    const { error: err } = await supabase.from("courses").insert({ user_id: user.id, title, platform, url: url || null, total_units: totalUnits, skill_id: skillId || null });
+    if (err) { setError(err.message); setLoading(false); } else { router.push("/courses"); router.refresh(); }
   }
 
+  const inp = "w-full px-5 py-3.5 rounded-[14px] text-[15px] outline-none transition-all";
+
   return (
-    <div className="max-w-lg mx-auto space-y-6 animate-fade-in">
-      <div className="flex items-center gap-3">
-        <Link
-          href="/courses"
-          className="p-2 text-surface-400 hover:text-surface-700 hover:bg-surface-100 rounded-lg transition-colors"
-        >
-          <ArrowLeft className="w-5 h-5" />
+    <div className="max-w-lg mx-auto px-4 lg:px-10 py-8 lg:py-12 animate-fade-in">
+      <div className="flex items-center gap-3 mb-8">
+        <Link href="/courses" className="p-2 rounded-xl transition-colors" style={{ color: "var(--outline)", background: "var(--surface-low)" }}>
+          <ArrowLeft size={20} />
         </Link>
-        <h1 className="text-2xl font-bold text-surface-900">Add a course</h1>
+        <h1 className="font-display text-2xl lg:text-3xl font-extrabold text-[var(--on-surface)]" style={{ letterSpacing: -0.5 }}>Add a course</h1>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-5">
-        {error && (
-          <div className="p-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg">
-            {error}
-          </div>
-        )}
-
+      <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+        {error && <div className="p-4 rounded-[14px] text-sm font-medium" style={{ color: "var(--error)", background: "#fef2f2" }}>{error}</div>}
         <div>
-          <label className="block text-sm font-medium text-surface-700 mb-1">
-            Course title *
-          </label>
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            required
-            className="w-full px-3 py-2 border border-surface-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-white"
-            placeholder="e.g. React - The Complete Guide"
-          />
+          <label className="text-[11px] font-bold tracking-[1.5px] uppercase block mb-2" style={{ color: "var(--outline)" }}>Course title</label>
+          <input type="text" value={title} onChange={e => setTitle(e.target.value)} required placeholder="e.g. React - The Complete Guide" className={inp} style={{ background: "var(--surface-low)", color: "var(--on-surface)", border: "none" }} />
         </div>
-
         <div>
-          <label className="block text-sm font-medium text-surface-700 mb-1">
-            Platform *
-          </label>
-          <select
-            value={platform}
-            onChange={(e) => setPlatform(e.target.value as Platform)}
-            className="w-full px-3 py-2 border border-surface-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-white"
-          >
-            {PLATFORMS.map((p) => (
-              <option key={p} value={p}>
-                {p}
-              </option>
-            ))}
+          <label className="text-[11px] font-bold tracking-[1.5px] uppercase block mb-2" style={{ color: "var(--outline)" }}>Platform</label>
+          <select value={platform} onChange={e => setPlatform(e.target.value as Platform)} className={inp} style={{ background: "var(--surface-low)", color: "var(--on-surface)", border: "none" }}>
+            {PLATFORMS.map(p => <option key={p} value={p}>{p}</option>)}
           </select>
         </div>
-
         <div>
-          <label className="block text-sm font-medium text-surface-700 mb-1">
-            Course URL
-          </label>
-          <input
-            type="url"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            className="w-full px-3 py-2 border border-surface-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-white"
-            placeholder="https://..."
-          />
+          <label className="text-[11px] font-bold tracking-[1.5px] uppercase block mb-2" style={{ color: "var(--outline)" }}>Course URL</label>
+          <input type="url" value={url} onChange={e => setUrl(e.target.value)} placeholder="https://..." className={inp} style={{ background: "var(--surface-low)", color: "var(--on-surface)", border: "none" }} />
         </div>
-
         <div>
-          <label className="block text-sm font-medium text-surface-700 mb-1">
-            Total units (lessons / videos) *
-          </label>
-          <input
-            type="number"
-            value={totalUnits}
-            onChange={(e) => setTotalUnits(Math.max(1, parseInt(e.target.value) || 1))}
-            min={1}
-            required
-            className="w-full px-3 py-2 border border-surface-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-white"
-          />
+          <label className="text-[11px] font-bold tracking-[1.5px] uppercase block mb-2" style={{ color: "var(--outline)" }}>Total units</label>
+          <input type="number" value={totalUnits} onChange={e => setTotalUnits(Math.max(1, parseInt(e.target.value) || 1))} min={1} className={inp} style={{ background: "var(--surface-low)", color: "var(--on-surface)", border: "none" }} />
         </div>
-
         <div>
-          <label className="block text-sm font-medium text-surface-700 mb-1">
-            Related skill
-          </label>
-          <select
-            value={skillId}
-            onChange={(e) => setSkillId(e.target.value)}
-            className="w-full px-3 py-2 border border-surface-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-white"
-          >
+          <label className="text-[11px] font-bold tracking-[1.5px] uppercase block mb-2" style={{ color: "var(--outline)" }}>Related skill</label>
+          <select value={skillId} onChange={e => setSkillId(e.target.value)} className={inp} style={{ background: "var(--surface-low)", color: "var(--on-surface)", border: "none" }}>
             <option value="">None</option>
-            {skills.map((skill) => (
-              <option key={skill.id} value={skill.id}>
-                {skill.icon} {skill.name} ({skill.category})
-              </option>
-            ))}
+            {skills.map(s => <option key={s.id} value={s.id}>{s.icon} {s.name} ({s.category})</option>)}
           </select>
         </div>
-
-        <button
-          type="submit"
-          disabled={loading || !title}
-          className="w-full py-2.5 px-4 text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
-        >
-          {loading ? "Adding..." : "Add course"}
+        <button type="submit" disabled={loading || !title} className="w-full py-3.5 rounded-full text-[15px] font-bold text-white btn-primary disabled:opacity-50 disabled:cursor-not-allowed mt-2">
+          {loading ? "Adding..." : "Add Course"}
         </button>
       </form>
     </div>
   );
+}
+
+export default function NewCoursePage() {
+  return <Suspense fallback={<div className="p-10 text-center" style={{ color: "var(--outline)" }}>Loading...</div>}><NewCourseForm /></Suspense>;
 }

@@ -11,20 +11,12 @@ export default function HomePage() {
           </div>
           <span className="font-semibold text-lg text-surface-900">WOYOhub</span>
         </div>
-        <div className="flex items-center gap-3">
-          <Link
-            href="/login"
-            className="px-4 py-2 text-sm font-medium text-surface-700 hover:text-surface-900 transition-colors"
-          >
-            Log in
-          </Link>
-          <Link
-            href="/signup"
-            className="px-4 py-2 text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 rounded-lg transition-colors"
-          >
-            Get started
-          </Link>
-        </div>
+        <Link
+          href="/login"
+          className="px-4 py-2 text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 rounded-lg transition-colors"
+        >
+          Log in
+        </Link>
       </nav>
 
       {/* Hero */}
@@ -44,18 +36,12 @@ export default function HomePage() {
           career roadmaps, and stay motivated with XP, streaks, and achievements.
         </p>
 
-        <div className="mt-8 flex flex-col sm:flex-row gap-3">
-          <Link
-            href="/signup"
-            className="px-6 py-3 text-base font-medium text-white bg-brand-600 hover:bg-brand-700 rounded-xl transition-colors shadow-sm"
-          >
-            Start for free
-          </Link>
+        <div className="mt-8">
           <Link
             href="/login"
-            className="px-6 py-3 text-base font-medium text-surface-700 bg-white hover:bg-surface-100 rounded-xl transition-colors border border-surface-200"
+            className="px-6 py-3 text-base font-medium text-white bg-brand-600 hover:bg-brand-700 rounded-xl transition-colors shadow-sm"
           >
-            I have an account
+            Log in
           </Link>
         </div>
 

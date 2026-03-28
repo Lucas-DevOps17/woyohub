@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 export default function LoginPage() {
@@ -11,7 +11,14 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const supabase = createClient();
+
+  const urlError = searchParams.get("error");
+  const displayError =
+    urlError === "unauthorized"
+      ? "You're not allowed to sign in to this service."
+      : error;
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -59,6 +66,12 @@ export default function LoginPage() {
         </p>
       </div>
 
+      {displayError && (
+        <div className="p-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg">
+          {displayError}
+        </div>
+      )}
+
       {/* Google OAuth */}
       <button
         onClick={handleGoogleLogin}
@@ -98,12 +111,6 @@ export default function LoginPage() {
 
       {/* Email/Password form */}
       <form onSubmit={handleLogin} className="space-y-4">
-        {error && (
-          <div className="p-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg">
-            {error}
-          </div>
-        )}
-
         <div>
           <label
             htmlFor="email"
@@ -148,16 +155,6 @@ export default function LoginPage() {
           {loading ? "Logging in..." : "Log in"}
         </button>
       </form>
-
-      <p className="text-center text-sm text-surface-500">
-        Don&apos;t have an account?{" "}
-        <Link
-          href="/signup"
-          className="font-medium text-brand-600 hover:text-brand-700"
-        >
-          Sign up
-        </Link>
-      </p>
     </div>
   );
 }

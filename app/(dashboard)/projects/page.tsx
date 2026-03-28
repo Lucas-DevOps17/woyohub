@@ -79,7 +79,7 @@ export default function ProjectsPage() {
       </div>
     );
   }
-
+  
   return (
     <>
       <TopBar displayName={profile?.display_name || "Learner"} level={level} streak={profile?.current_streak || 0} />

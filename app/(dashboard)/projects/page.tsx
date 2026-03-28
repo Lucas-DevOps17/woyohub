@@ -105,8 +105,8 @@ export default function ProjectsPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
             {projects.map((p) => {
               const st = statusColors[p.status] || statusColors.planned;
-              const skills = (p.project_skills || []).map((ps) => ps.skill?.name).filter(Boolean);
-              const skillIds = (p.project_skills || []).map((ps) => ps.skill?.id).filter(Boolean);
+              const skills = (p.project_skills || []).map((ps) => ps.skill?.name).filter((s): s is string => Boolean(s));
+              const skillIds = (p.project_skills || []).map((ps) => ps.skill?.id).filter((s): s is string => Boolean(s));
 
               return (
                 <div
@@ -172,7 +172,7 @@ export default function ProjectsPage() {
                     </p>
                     {skills.length > 0 && (
                       <div className="flex flex-wrap gap-1.5">
-                        {skills.map((s: string) => (
+                        {skills.map((s) => (
                           <span
                             key={s}
                             className="text-xs font-semibold px-3 py-1 rounded-full"
@@ -187,7 +187,7 @@ export default function ProjectsPage() {
                     {(p.github_url || p.demo_url) && (
                       <div className="flex gap-2 mt-4">
                         {p.github_url && (
-                          <a
+                          
                             href={p.github_url}
                             target="_blank"
                             rel="noopener noreferrer"
@@ -198,7 +198,7 @@ export default function ProjectsPage() {
                           </a>
                         )}
                         {p.demo_url && (
-                          <a
+                          
                             href={p.demo_url}
                             target="_blank"
                             rel="noopener noreferrer"

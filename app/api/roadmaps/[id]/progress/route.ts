@@ -49,10 +49,11 @@ export async function GET(
     const progress = Math.min(userLevel / rs.required_level, 1);
     totalProgress += progress;
 
+    const skillData = Array.isArray(rs.skill) ? rs.skill[0] : rs.skill;
     return {
       skill_id: rs.skill_id,
-      name: rs.skill?.name || "Unknown",
-      icon: rs.skill?.icon || "",
+      name: skillData?.name || "Unknown",
+      icon: skillData?.icon || "",
       required_level: rs.required_level,
       user_level: userLevel,
       user_xp: userSkill?.xp || 0,

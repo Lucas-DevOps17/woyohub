@@ -320,7 +320,7 @@ export async function awardDailyLoginXP(
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("last_activity_date, current_streak, longest_streak")
+    .select("last_activity_date, current_streak, longest_streak, total_xp")
     .eq("id", userId)
     .single();
 

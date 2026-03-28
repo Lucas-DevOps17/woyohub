@@ -108,6 +108,30 @@ Agent 2 connected the dashboard to real Supabase data:
 - `components/dashboard/dashboard-client.tsx` — Real roadmap progress fetch + daily login trigger
 - `supabase/migrations/002_progression_functions.sql` — Database RPC functions
 
+### Phase 2C — Learning Log System ✅ Complete (Agent 4)
+
+**Agent 4 replaced lesson-by-lesson tracking with a batch learning log system and fixed Phase 2B TypeScript build errors.**
+
+**Bug fixes:**
+- [x] `lib/progression.ts` — `total_xp` missing from profile SELECT in `awardDailyLoginXP` (caused TS error + runtime NaN)
+- [x] `app/api/roadmaps/[id]/progress/route.ts` — Supabase infers `skill` join as array; added `Array.isArray` guard on `.name`/`.icon` access
+
+**Learning log system:**
+- [x] **Schema upgrade** — `learning_logs.units_completed` column; `learning_log_skills` junction table with RLS; `skills` INSERT policy for custom skill creation
+- [x] **API `POST /api/courses/[id]/log`** — Atomic sequence: validate ownership → clamp units to remaining (prevent over-complete) → insert log → update course progress → link skills → award +10 XP → update user_skills per skill
+- [x] **Courses page rewrite** — Client component; each card has inline "Add Lessons" form (units, summary, skill chips, new skill input); learning logs shown below card (last 3 previewed, collapse/expand for all); no lesson CRUD UI
+
+**Files created/updated:**
+- `supabase/migrations/003_learning_logs_upgrade.sql` — Schema upgrade
+- `app/api/courses/[id]/log/route.ts` — Learning log submission endpoint
+- `app/(dashboard)/courses/page.tsx` — Rewritten as client component with log form + log list
+- `lib/progression.ts` — Fix: add `total_xp` to profile SELECT
+- `app/api/roadmaps/[id]/progress/route.ts` — Fix: `Array.isArray` guard for skill join
+
+**XP rules:**
+- Learning log submission → **+10 XP** (profile)
+- Each tagged skill → **+10 XP** (user_skills)
+
 ### Phase 3 — Gamification & Polish
 - [ ] Streak system (daily tracking, freeze feature)
 - [ ] Achievement auto-unlock on milestones
@@ -147,7 +171,10 @@ Agent 2 connected the dashboard to real Supabase data:
 | Lesson completion       | ✅ Click to complete + XP award             |
 | Daily login XP          | ✅ Auto-award on dashboard load             |
 | Project CRUD            | ✅ Create, edit, delete with skills         |
-| Loading skeletons       | ❌ TODO (Phase 2B polish)                   |
+| Learning log submission | ✅ Batch progress log + +10 XP per entry    |
+| Learning log display    | ✅ Per-course log list, collapse/expand     |
+| Skill tag on log entry  | ✅ Multi-select + new skill creation        |
+| Loading skeletons       | ❌ TODO (Phase 3 polish)                    |
 | Level-up animations     | ❌ TODO (Phase 3)                           |
 
 ---
@@ -166,6 +193,8 @@ Agent 2 connected the dashboard to real Supabase data:
 | 2025-01-26 | `078ebaf` | Fix: wrap login useSearchParams in Suspense + apply new design |
 | 2025-01-26 | *Agent 2* | **Dashboard data integration** — real Supabase queries for today's XP, active roadmap, recent activity feed, streak tracker. CSS animations. Layout reorganization. |
 | 2026-03-29 | *Agent 3* | **Phase 2B Core Logic** — Lesson completion + XP, project CRUD, roadmap % fix, daily login bonus, course detail page, progression library, RPC functions. |
+| 2026-03-29 | `2c509a4` | **Fix Phase 2B build errors** — `total_xp` missing from profile SELECT; `Array.isArray` guard for Supabase skill join in roadmap progress route. |
+| 2026-03-29 | `3c056c1` | **Phase 2C Learning Log System** — Migration 003, `POST /api/courses/[id]/log`, courses page rewrite with inline log form + collapsible log list. |
 
 ---
 

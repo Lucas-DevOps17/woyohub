@@ -102,6 +102,7 @@ The UI follows a custom design specification (`DESIGN.md`) inspired by editorial
 | 2025-01-26 | `ca69aa6` | Restrict access to allowed email only (Google OAuth + email allowlist) |
 | 2025-01-26 | `f7f116a` | Fix: wrap useSearchParams in Suspense boundary for Next.js 14 |
 | 2025-01-26 | *pending* | **Major UI redesign** — "Intellectual Ascent" design system. Complete rewrite of all pages. Manrope + Inter typography, tonal surfaces, no borders, gradient progress bars, dark mode, glassmorphic top bar, level hero card, FAB. Added Settings page, Sign Out page. 7 fully designed pages. |
+| 2026-03-29 | *pending* | **Dashboard Phase 2A: Data Integration** — Connected dashboard to real data: today's XP from xp_logs, active roadmap from user_roadmaps, recent activity feed (last 10 XP logs). Added Streak Tracker card with current/longest streak and last activity date. Added Recent Activity sidebar. Added CSS animations (fade-in, pulse-glow). Layout reorganized for at-a-glance progress visibility. |
 
 ---
 

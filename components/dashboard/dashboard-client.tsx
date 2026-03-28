@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { GradBar } from "@/components/ui/grad-bar";
 import { getProgressPercentage, formatRelativeTime } from "@/lib/utils";
 
@@ -19,6 +19,28 @@ type Props = {
   recentActivity: any[];
 };
 
+type RoadmapProgress = {
+  progress: number;
+  total_skills: number;
+  completed_skills: number;
+  skills: Array<{
+    skill_id: string;
+    name: string;
+    icon: string;
+    required_level: number;
+    user_level: number;
+    user_xp: number;
+    progress: number;
+  }>;
+  next_action: {
+    skill_id: string;
+    name: string;
+    icon: string;
+    user_level: number;
+    required_level: number;
+  } | null;
+};
+
 export function DashboardClient({
   profile,
   level,
@@ -32,6 +54,8 @@ export function DashboardClient({
   recentActivity,
 }: Props) {
   const [journal, setJournal] = useState("");
+  const [roadmapProgress, setRoadmapProgress] = useState<RoadmapProgress | null>(null);
+  const [roadmapLoading, setRoadmapLoading] = useState(false);
 
   // Generate streak visualization based on last activity
   const getStreakDays = () => {
@@ -46,13 +70,10 @@ export function DashboardClient({
       const date = new Date(today);
       date.setDate(date.getDate() - i);
 
-      // Check if this day should be marked active
       if (i === 0 && todayXp > 0) {
-        // Today with XP earned
         days.push(true);
       } else if (lastActivity) {
         const diffDays = Math.floor((date.getTime() - lastActivity.getTime()) / (1000 * 60 * 60 * 24));
-        // Mark as active if this is the day of last activity or within streak window
         const isActive = diffDays === 0;
         days.push(isActive);
       } else {
@@ -64,17 +85,31 @@ export function DashboardClient({
 
   const streakDays = getStreakDays();
 
-  // Calculate roadmap progress
-  const getRoadmapProgress = () => {
-    if (!userRoadmap) return { pct: 0, nextAction: null };
+  // Fetch real roadmap progress on mount
+  useEffect(() => {
+    if (!userRoadmap?.roadmap_id) return;
 
-    // This is a simplified calculation - would need roadmap_skills data
-    // For now, show placeholder based on user's overall progress
-    const pct = Math.round((profile.level / 10) * 100);
-    return { pct: Math.min(pct, 100), nextAction: "Complete a lesson to progress" };
-  };
+    setRoadmapLoading(true);
+    fetch(`/api/roadmaps/${userRoadmap.roadmap_id}/progress`)
+      .then((r) => r.json())
+      .then((data) => {
+        setRoadmapProgress(data);
+        setRoadmapLoading(false);
+      })
+      .catch(() => setRoadmapLoading(false));
+  }, [userRoadmap?.roadmap_id]);
 
-  const roadmapProgress = getRoadmapProgress();
+  // Award daily login XP on mount
+  useEffect(() => {
+    fetch("/api/daily-login", { method: "POST" })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.xpAwarded > 0) {
+          console.log(`Daily login: +${data.xpAwarded} XP!`);
+        }
+      })
+      .catch(console.error);
+  }, []);
 
   return (
     <div className="flex flex-col gap-6 lg:gap-8 animate-fade-in">
@@ -114,6 +149,54 @@ export function DashboardClient({
               <p className="text-sm mt-1" style={{ color: "var(--on-surface-variant)" }}>Choose a career path to track your progress.</p>
               <a href="/roadmaps" className="inline-block mt-4 px-6 py-3 rounded-full text-sm font-bold text-white btn-primary">Browse Roadmaps</a>
             </div>
+          ) : roadmapLoading ? (
+            <div className="rounded-3xl p-10 text-center" style={{ background: "var(--surface-card)" }}>
+              <p className="text-sm" style={{ color: "var(--outline)" }}>Loading roadmap progress...</p>
+            </div>
+          ) : roadmapProgress ? (
+            <>
+              <div className="flex justify-between items-center mb-4 lg:mb-6 flex-wrap gap-2">
+                <h2 className="font-display text-xl lg:text-[28px] font-extrabold text-[var(--on-surface)]" style={{ letterSpacing: -0.5 }}>
+                  {userRoadmap.roadmap?.icon || "🎯"} {userRoadmap.roadmap?.title}
+                </h2>
+                <span className="text-[13px] font-bold px-4 py-1.5 rounded-full" style={{ color: "var(--tertiary)", background: "var(--tertiary-container, #e6f7ee)" }}>
+                  {roadmapProgress.progress}% COMPLETE
+                </span>
+              </div>
+              {roadmapProgress.skills.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
+                  {roadmapProgress.skills.slice(0, 6).map((s) => (
+                    <div key={s.skill_id} className="rounded-[20px] p-5 lg:p-7" style={{ background: "var(--surface-card)" }}>
+                      <p className="text-[11px] font-bold tracking-[1.5px] uppercase" style={{ color: "var(--outline)" }}>
+                        {s.icon} {s.name}
+                      </p>
+                      <p className="text-xs mt-1" style={{ color: "var(--outline)" }}>
+                        Lv.{s.user_level} / {s.required_level}
+                      </p>
+                      <div className="flex items-center gap-2.5 mt-3">
+                        <div className="flex-1">
+                          <GradBar pct={s.progress} h={8} variant={s.progress === 100 ? "tertiary" : "primary"} />
+                        </div>
+                        {s.progress === 100 ? (
+                          <span className="text-lg" style={{ color: "var(--tertiary)" }}>✓</span>
+                        ) : (
+                          <span className="text-[13px] font-semibold" style={{ color: "var(--outline)" }}>{s.progress}%</span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm" style={{ color: "var(--outline)" }}>No skills defined for this roadmap.</p>
+              )}
+              {roadmapProgress.next_action && (
+                <div className="mt-4 p-4 rounded-2xl" style={{ background: "var(--primary-dim, #e8f0fe)" }}>
+                  <p className="text-xs font-bold" style={{ color: "var(--primary)" }}>
+                    Next: Level up {roadmapProgress.next_action.icon} {roadmapProgress.next_action.name} (Lv.{roadmapProgress.next_action.user_level} → {roadmapProgress.next_action.required_level})
+                  </p>
+                </div>
+              )}
+            </>
           ) : (
             <>
               <div className="flex justify-between items-center mb-4 lg:mb-6 flex-wrap gap-2">
@@ -121,25 +204,10 @@ export function DashboardClient({
                   {userRoadmap.roadmap?.icon || "🎯"} {userRoadmap.roadmap?.title}
                 </h2>
                 <span className="text-[13px] font-bold px-4 py-1.5 rounded-full" style={{ color: "var(--tertiary)", background: "var(--tertiary-container, #e6f7ee)" }}>
-                  {roadmapProgress.pct}% COMPLETE
+                  0% COMPLETE
                 </span>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 lg:gap-4">
-                {[
-                  { label: "FOUNDATION", name: "HTML5", pct: 100, variant: "tertiary" as const },
-                  { label: "STYLING", name: "CSS Grid & Flex", pct: 80, variant: "primary" as const },
-                  { label: "LOGIC", name: "JavaScript ES6", pct: 40, variant: "primary" as const },
-                ].map(s => (
-                  <div key={s.name} className="rounded-[20px] p-5 lg:p-7" style={{ background: "var(--surface-card)" }}>
-                    <p className="text-[11px] font-bold tracking-[1.5px] uppercase" style={{ color: "var(--outline)" }}>{s.label}</p>
-                    <h3 className="font-display text-lg lg:text-[22px] font-extrabold text-[var(--on-surface)] mt-2 mb-4" style={{ letterSpacing: -0.3 }}>{s.name}</h3>
-                    <div className="flex items-center gap-2.5">
-                      <div className="flex-1"><GradBar pct={s.pct} h={8} variant={s.variant} /></div>
-                      {s.pct === 100 ? <span className="text-lg" style={{ color: "var(--tertiary)" }}>✓</span> : <span className="text-[13px] font-semibold" style={{ color: "var(--outline)" }}>{s.pct}%</span>}
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <p className="text-sm" style={{ color: "var(--outline)" }}>Start learning to track your roadmap progress.</p>
             </>
           )}
         </div>

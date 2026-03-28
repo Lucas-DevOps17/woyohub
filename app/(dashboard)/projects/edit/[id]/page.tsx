@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
@@ -13,7 +13,11 @@ const STATUS_OPTIONS = [
   { value: "completed", label: "Completed" },
 ];
 
-function NewProjectForm() {
+function EditProjectForm() {
+  const params = useParams();
+  const router = useRouter();
+  const supabase = createClient();
+
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState("planned");
@@ -21,10 +25,9 @@ function NewProjectForm() {
   const [demoUrl, setDemoUrl] = useState("");
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
   const [skills, setSkills] = useState<Skill[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const router = useRouter();
-  const supabase = createClient();
 
   useEffect(() => {
     supabase.from("skills").select("*").order("category").then(({ data }) => {
@@ -32,60 +35,62 @@ function NewProjectForm() {
     });
   }, []);
 
+  useEffect(() => {
+    if (params.id) {
+      supabase
+        .from("projects")
+        .select("*, project_skills(skill_id)")
+        .eq("id", params.id)
+        .single()
+        .then(({ data, error }) => {
+          if (error) {
+            setError(error.message);
+            setLoading(false);
+            return;
+          }
+          if (data) {
+            setTitle(data.title);
+            setDescription(data.description || "");
+            setStatus(data.status);
+            setGithubUrl(data.github_url || "");
+            setDemoUrl(data.demo_url || "");
+            setSelectedSkills((data.project_skills || []).map((ps: any) => ps.skill_id));
+          }
+          setLoading(false);
+        });
+    }
+  }, [params.id]);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    setLoading(true);
+    setSaving(true);
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      setError("Not logged in");
-      setLoading(false);
-      return;
-    }
-
-    // Insert project
-    const { data: project, error: insertError } = await supabase
-      .from("projects")
-      .insert({
-        user_id: user.id,
+    const { error: updateError } = await fetch(`/api/projects/${params.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
         title,
-        description: description || null,
+        description,
         status,
-        github_url: githubUrl || null,
-        demo_url: demoUrl || null,
-      })
-      .select()
-      .single();
+        github_url: githubUrl,
+        demo_url: demoUrl,
+        skill_ids: selectedSkills,
+      }),
+    }).then((r) => r.json());
 
-    if (insertError) {
-      setError(insertError.message);
-      setLoading(false);
+    if (updateError) {
+      setError(updateError);
+      setSaving(false);
       return;
     }
 
-    // Insert project_skills
-    if (selectedSkills.length > 0) {
-      const { error: skillsError } = await supabase.from("project_skills").insert(
-        selectedSkills.map((skillId) => ({
-          project_id: project.id,
-          skill_id: skillId,
-        }))
-      );
-
-      if (skillsError) {
-        setError(skillsError.message);
-        setLoading(false);
-        return;
-      }
-    }
-
-    // If status is completed, award XP
+    // If newly completed, award XP
     if (status === "completed") {
       await fetch("/api/projects/complete", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ projectId: project.id }),
+        body: JSON.stringify({ projectId: params.id }),
       });
     }
 
@@ -103,6 +108,14 @@ function NewProjectForm() {
 
   const inp = "w-full px-5 py-3.5 rounded-[14px] text-[15px] outline-none transition-all";
 
+  if (loading) {
+    return (
+      <div className="p-10 text-center" style={{ color: "var(--outline)" }}>
+        Loading...
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-lg mx-auto px-4 lg:px-10 py-8 lg:py-12 animate-fade-in">
       <div className="flex items-center gap-3 mb-8">
@@ -114,7 +127,7 @@ function NewProjectForm() {
           <ArrowLeft size={20} />
         </Link>
         <h1 className="font-display text-2xl lg:text-3xl font-extrabold text-[var(--on-surface)]" style={{ letterSpacing: -0.5 }}>
-          Add a project
+          Edit project
         </h1>
       </div>
 
@@ -134,7 +147,6 @@ function NewProjectForm() {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             required
-            placeholder="e.g. Portfolio Website"
             className={inp}
             style={{ background: "var(--surface-low)", color: "var(--on-surface)", border: "none" }}
           />
@@ -147,7 +159,6 @@ function NewProjectForm() {
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="What did you build?"
             rows={4}
             className={inp}
             style={{ background: "var(--surface-low)", color: "var(--on-surface)", border: "none", resize: "vertical" }}
@@ -180,7 +191,6 @@ function NewProjectForm() {
             type="url"
             value={githubUrl}
             onChange={(e) => setGithubUrl(e.target.value)}
-            placeholder="https://github.com/..."
             className={inp}
             style={{ background: "var(--surface-low)", color: "var(--on-surface)", border: "none" }}
           />
@@ -194,7 +204,6 @@ function NewProjectForm() {
             type="url"
             value={demoUrl}
             onChange={(e) => setDemoUrl(e.target.value)}
-            placeholder="https://..."
             className={inp}
             style={{ background: "var(--surface-low)", color: "var(--on-surface)", border: "none" }}
           />
@@ -215,9 +224,7 @@ function NewProjectForm() {
                   background: selectedSkills.includes(skill.id)
                     ? "var(--primary)"
                     : "var(--surface-low)",
-                  color: selectedSkills.includes(skill.id)
-                    ? "white"
-                    : "var(--outline)",
+                  color: selectedSkills.includes(skill.id) ? "white" : "var(--outline)",
                 }}
               >
                 {skill.icon} {skill.name}
@@ -228,20 +235,20 @@ function NewProjectForm() {
 
         <button
           type="submit"
-          disabled={loading || !title}
+          disabled={saving || !title}
           className="w-full py-3.5 rounded-full text-[15px] font-bold text-white btn-primary disabled:opacity-50 disabled:cursor-not-allowed mt-2"
         >
-          {loading ? "Adding..." : "Add Project"}
+          {saving ? "Saving..." : "Save Changes"}
         </button>
       </form>
     </div>
   );
 }
 
-export default function NewProjectPage() {
+export default function EditProjectPage() {
   return (
     <Suspense fallback={<div className="p-10 text-center" style={{ color: "var(--outline)" }}>Loading...</div>}>
-      <NewProjectForm />
+      <EditProjectForm />
     </Suspense>
   );
 }

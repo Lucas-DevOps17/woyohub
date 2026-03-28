@@ -34,7 +34,7 @@ export default async function CoursesPage() {
             {all.map((c: any) => {
               const pct = getProgressPercentage(c.completed_units, c.total_units);
               return (
-                <div key={c.id} className="rounded-3xl overflow-hidden" style={{ background: "var(--surface-card)" }}>
+                <Link key={c.id} href={`/courses/${c.id}`} className="rounded-3xl overflow-hidden no-underline block hover:shadow-lg transition-shadow" style={{ background: "var(--surface-card)" }}>
                   <div className="card-dark-gradient h-[120px] lg:h-[160px] relative flex items-end p-4">
                     <span className="relative text-[11px] font-bold text-white px-3.5 py-1 rounded-lg tracking-wide" style={{ background: "var(--primary)" }}>{c.platform?.toUpperCase()}</span>
                     {pct === 100 && <span className="absolute top-4 right-4 text-[11px] font-bold px-3.5 py-1 rounded-lg" style={{ color: "#62ff96", background: "rgba(0,102,49,0.3)" }}>COMPLETED</span>}
@@ -47,7 +47,7 @@ export default async function CoursesPage() {
                       <span className="text-[13px] font-semibold" style={{ color: pct === 100 ? "var(--tertiary)" : "var(--outline)" }}>{pct}%</span>
                     </div>
                   </div>
-                </div>
+                </Link>
               );
             })}
           </div>

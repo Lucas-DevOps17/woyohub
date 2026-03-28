@@ -15,7 +15,7 @@ type Project = {
   status: "planned" | "in-progress" | "completed";
   github_url: string | null;
   demo_url: string | null;
-  project_skills?: { skill?: { name: string; id: string } }[];
+  project_skills?: Array<{ skill?: { name: string; id: string } }>;
 };
 
 export default function ProjectsPage() {
@@ -26,60 +26,67 @@ export default function ProjectsPage() {
   const [loading, setLoading] = useState(true);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
-  useEffect(() => {
+  useEffect(function onMount() {
     loadData();
   }, []);
 
   async function loadData() {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const authResult = await supabase.auth.getUser();
+    const user = authResult.data.user;
     if (!user) return;
 
-    const { data: profileData } = await supabase
+    const profileResult = await supabase
       .from("profiles")
       .select("*")
       .eq("id", user.id)
       .single();
 
-    const { data: projectsData } = await supabase
+    const projectsResult = await supabase
       .from("projects")
       .select("*, project_skills(skill:skills(name, id))")
       .eq("user_id", user.id)
       .order("updated_at", { ascending: false });
 
-    setProfile(profileData);
-    setProjects(projectsData || []);
+    setProfile(profileResult.data);
+    setProjects(projectsResult.data || []);
     setLoading(false);
   }
 
-  async function deleteProject(id: string) {
+  async function deleteProject(projectId: string) {
     if (!confirm("Delete this project?")) return;
-
-    const { error } = await fetch(`/api/projects/${id}`, {
-      method: "DELETE",
-    }).then((r) => r.json());
-    if (error) {
-      alert(error);
-      return;
+    try {
+      const res = await fetch("/api/projects/" + projectId, { method: "DELETE" });
+      const json = await res.json();
+      if (json.error) {
+        alert(json.error);
+        return;
+      }
+      setProjects(function filterOut(prev) {
+        return prev.filter(function keepOthers(p) {
+          return p.id !== projectId;
+        });
+      });
+      setOpenMenuId(null);
+    } catch (err) {
+      alert("Failed to delete project");
     }
-
-    setProjects((prev) => prev.filter((p) => p.id !== id));
-    setOpenMenuId(null);
   }
 
-  const level = calculateLevel(profile?.total_xp || 0);
+  var level = calculateLevel(profile?.total_xp || 0);
 
-  const statusColors: Record<string, { bg: string; color: string }> = {
-    completed: {
+  var statusColors: Record<string, { bg: string; color: string }> = {
+    "completed": {
       bg: "var(--tertiary-container, #e6f7ee)",
-      color: "var(--tertiary)",
+      color: "var(--tertiary)"
     },
     "in-progress": {
       bg: "var(--primary-dim, #e8f0fe)",
-      color: "var(--primary)",
+      color: "var(--primary)"
     },
-    planned: { bg: "var(--surface-low)", color: "var(--outline)" },
+    "planned": {
+      bg: "var(--surface-low)",
+      color: "var(--outline)"
+    }
   };
 
   if (loading) {
@@ -91,7 +98,7 @@ export default function ProjectsPage() {
   }
 
   return (
-    <>
+    <div>
       <TopBar
         displayName={profile?.display_name || "Learner"}
         level={level}
@@ -131,14 +138,17 @@ export default function ProjectsPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
-            {projects.map((p) => {
-              const st = statusColors[p.status] || statusColors.planned;
-              const skills = (p.project_skills || [])
-                .map((ps) => ps.skill?.name)
-                .filter((s): s is string => Boolean(s));
-              const skillIds = (p.project_skills || [])
-                .map((ps) => ps.skill?.id)
-                .filter((s): s is string => Boolean(s));
+            {projects.map(function renderProject(p) {
+              var st = statusColors[p.status] || statusColors["planned"];
+              var skills: string[] = [];
+              if (p.project_skills) {
+                for (var i = 0; i < p.project_skills.length; i++) {
+                  var skillName = p.project_skills[i].skill?.name;
+                  if (skillName) {
+                    skills.push(skillName);
+                  }
+                }
+              }
 
               return (
                 <div
@@ -146,56 +156,51 @@ export default function ProjectsPage() {
                   className="rounded-3xl overflow-hidden relative"
                   style={{ background: "var(--surface-card)" }}
                 >
-                  {/* Menu button */}
                   <div className="absolute top-3 right-3 z-10">
                     <button
-                      onClick={() =>
-                        setOpenMenuId(openMenuId === p.id ? null : p.id)
-                      }
+                      onClick={function toggleMenu() {
+                        setOpenMenuId(openMenuId === p.id ? null : p.id);
+                      }}
                       className="p-2 rounded-full transition-colors"
                       style={{
                         background: "rgba(255,255,255,0.2)",
-                        color: "var(--on-surface)",
+                        color: "var(--on-surface)"
                       }}
                     >
                       <MoreVertical size={16} />
                     </button>
-                    {openMenuId === p.id && (
+                    {openMenuId === p.id ? (
                       <div
                         className="absolute right-0 mt-1 rounded-2xl shadow-lg overflow-hidden z-20"
                         style={{ background: "var(--surface-card)" }}
                       >
                         <Link
-                          href={`/projects/edit/${p.id}`}
-                          className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium hover:bg-surface-low"
+                          href={"/projects/edit/" + p.id}
+                          className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium"
                           style={{ color: "var(--on-surface)" }}
-                          onClick={() => setOpenMenuId(null)}
+                          onClick={function closeMenu() { setOpenMenuId(null); }}
                         >
                           <Edit size={16} />
                           Edit
                         </Link>
                         <button
-                          onClick={() => deleteProject(p.id)}
+                          onClick={function handleDelete() { deleteProject(p.id); }}
                           className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium w-full text-left"
                           style={{
                             color: "var(--error)",
-                            background: "rgba(217,52,52,0.05)",
+                            background: "rgba(217,52,52,0.05)"
                           }}
                         >
                           <Trash2 size={16} />
                           Delete
                         </button>
                       </div>
-                    )}
+                    ) : null}
                   </div>
 
                   <div className="card-dark-gradient h-[100px] flex items-center justify-center">
                     <span className="text-3xl opacity-30">
-                      {p.status === "completed"
-                        ? "✓"
-                        : p.status === "in-progress"
-                        ? "⚙"
-                        : "📋"}
+                      {p.status === "completed" ? "✓" : p.status === "in-progress" ? "⚙" : "📋"}
                     </span>
                   </div>
                   <div className="p-5 lg:p-7">
@@ -216,54 +221,56 @@ export default function ProjectsPage() {
                     >
                       {p.description}
                     </p>
-                    {skills.length > 0 && (
+                    {skills.length > 0 ? (
                       <div className="flex flex-wrap gap-1.5">
-                        {skills.map((s) => (
-                          <span
-                            key={s}
-                            className="text-xs font-semibold px-3 py-1 rounded-full"
-                            style={{
-                              background: "var(--surface-low)",
-                              color: "var(--outline)",
-                            }}
-                          >
-                            {s}
-                          </span>
-                        ))}
+                        {skills.map(function renderSkill(s) {
+                          return (
+                            <span
+                              key={s}
+                              className="text-xs font-semibold px-3 py-1 rounded-full"
+                              style={{
+                                background: "var(--surface-low)",
+                                color: "var(--outline)"
+                              }}
+                            >
+                              {s}
+                            </span>
+                          );
+                        })}
                       </div>
-                    )}
-                    {(p.github_url || p.demo_url) && (
+                    ) : null}
+                    {(p.github_url || p.demo_url) ? (
                       <div className="flex gap-2 mt-4">
-                        {p.github_url && (
-                          
+                        {p.github_url ? (
+                          <a
                             href={p.github_url}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-xs font-semibold px-3 py-1.5 rounded-full transition-colors"
                             style={{
                               background: "var(--surface-low)",
-                              color: "var(--on-surface)",
+                              color: "var(--on-surface)"
                             }}
                           >
                             GitHub
                           </a>
-                        )}
-                        {p.demo_url && (
-                          
+                        ) : null}
+                        {p.demo_url ? (
+                          <a
                             href={p.demo_url}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-xs font-semibold px-3 py-1.5 rounded-full transition-colors"
                             style={{
                               background: "var(--primary)",
-                              color: "white",
+                              color: "white"
                             }}
                           >
                             Live Demo
                           </a>
-                        )}
+                        ) : null}
                       </div>
-                    )}
+                    ) : null}
                   </div>
                 </div>
               );
@@ -271,6 +278,6 @@ export default function ProjectsPage() {
           </div>
         )}
       </div>
-    </>
+    </div>
   );
 }

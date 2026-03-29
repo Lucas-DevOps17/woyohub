@@ -1,30 +1,30 @@
 "use client";
 
 import {
-  useState,
+  Fragment,
   useCallback,
   useMemo,
-  Fragment,
+  useState,
 } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import ReactFlow, {
   Background,
-  Controls,
-  useNodesState,
-  useEdgesState,
-  addEdge,
   Connection,
+  Controls,
   Edge,
   Handle,
   Position,
   ReactFlowProvider,
+  addEdge,
+  useEdgesState,
+  useNodesState,
   useReactFlow,
 } from "reactflow";
 import "reactflow/dist/style.css";
+import { toast } from "sonner";
 import type { SkillOption } from "@/components/roadmaps/roadmap-form-modal";
 import { RoadmapNodeEditModal } from "@/components/roadmaps/roadmap-node-edit-modal";
-import { toast } from "sonner";
 
 // NOTE: this is a subset of the full DB type
 export type WorkflowNode = {
@@ -46,10 +46,14 @@ export type WorkflowEdge = {
   target_node_id: string;
 };
 
-const NODE_WIDTH = 260;
-const NODE_HEIGHT = 148;
+const NODE_WIDTH = 280;
+const NODE_HEIGHT = 176;
 
-function normalizeNodePayload(node: any, isOwner: boolean, onToggleComplete: (nodeId: string, completed: boolean) => void) {
+function normalizeNodePayload(
+  node: any,
+  isOwner: boolean,
+  onToggleComplete: (nodeId: string, completed: boolean) => void
+) {
   return {
     ...node,
     skill: node.skill && Array.isArray(node.skill) ? node.skill[0] : node.skill,
@@ -64,23 +68,49 @@ function normalizeNodePayload(node: any, isOwner: boolean, onToggleComplete: (no
   };
 }
 
+function getNodeSkillEntries(node: WorkflowNode) {
+  if (node.node_skills && node.node_skills.length > 0) {
+    return node.node_skills.map((entry, index) => ({
+      key: `${entry.skill_id}-${index}`,
+      name: entry.skill?.name || "Linked skill",
+      icon: entry.skill?.icon || "•",
+    }));
+  }
+
+  if (node.skill?.name) {
+    return [
+      {
+        key: node.skill_id || node.skill.name,
+        name: node.skill.name,
+        icon: node.skill.icon || "•",
+      },
+    ];
+  }
+
+  return [];
+}
+
 function WorkflowNodeComponent({
   data: node,
 }: {
-  data: WorkflowNode & { isOwner: boolean, onToggleComplete: (nodeId: string, completed: boolean) => void };
+  data: WorkflowNode & {
+    isOwner: boolean;
+    onToggleComplete: (nodeId: string, completed: boolean) => void;
+  };
 }) {
   const completeLabel = node.completed ? "Completed" : "Set Complete";
+  const linkedSkills = getNodeSkillEntries(node);
 
   return (
     <>
       <Handle
         type="target"
         position={Position.Top}
-        style={{ background: 'var(--primary)', width: 8, height: 8, border: 'none', top: -4 }}
+        style={{ background: "var(--primary)", width: 8, height: 8, border: "none", top: -4 }}
         isConnectable={node.isOwner}
       />
       <div
-        className="w-full h-full rounded-[28px] p-0 cursor-pointer select-none relative overflow-hidden"
+        className="relative w-full cursor-pointer select-none overflow-hidden rounded-[28px]"
         style={{
           background: node.completed
             ? "linear-gradient(180deg, rgba(0,102,49,0.14) 0%, var(--surface-card) 38%)"
@@ -91,24 +121,26 @@ function WorkflowNodeComponent({
           border: node.completed
             ? "1px solid rgba(0,102,49,0.22)"
             : "1px solid rgba(0,73,219,0.12)",
+          minHeight: NODE_HEIGHT,
+          height: "auto",
         }}
       >
         <div
-          className="h-full flex flex-col"
+          className="flex min-h-[176px] flex-col"
           onClick={(e) => e.stopPropagation()}
           onPointerDown={(e) => e.stopPropagation()}
         >
-          <div className="px-5 pt-4 pb-3 flex items-start justify-between gap-3">
+          <div className="flex items-start justify-between gap-3 px-5 pb-3 pt-4">
             <div>
               <div
-                className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-bold tracking-[0.18em] uppercase"
+                className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em]"
                 style={{
                   background: node.completed ? "rgba(0,102,49,0.14)" : "rgba(0,73,219,0.10)",
                   color: node.completed ? "var(--tertiary)" : "var(--primary)",
                 }}
               >
                 <span
-                  className="w-2 h-2 rounded-full"
+                  className="h-2 w-2 rounded-full"
                   style={{ background: node.completed ? "var(--tertiary)" : "var(--primary)" }}
                 />
                 {node.completed ? "Cleared" : "In Progress"}
@@ -117,7 +149,7 @@ function WorkflowNodeComponent({
             <button
               type="button"
               onClick={() => node.onToggleComplete(node.id, !node.completed)}
-              className="shrink-0 px-3.5 py-2 rounded-full text-[10px] font-bold tracking-wide transition-all"
+              className="shrink-0 rounded-full px-3.5 py-2 text-[10px] font-bold tracking-wide transition-all"
               style={{
                 background: node.completed ? "var(--tertiary)" : "var(--primary)",
                 color: "#ffffff",
@@ -127,53 +159,52 @@ function WorkflowNodeComponent({
             </button>
           </div>
 
-          <div className="px-5 pb-5 flex-1 flex flex-col">
-            <span className="font-display font-extrabold text-[15px] block leading-snug text-[var(--on-surface)]">
+          <div className="flex flex-1 flex-col px-5 pb-5">
+            <span className="font-display block text-[15px] font-extrabold leading-snug text-[var(--on-surface)]">
               {node.title}
             </span>
             {node.description ? (
-              <p className="text-[12px] leading-relaxed mt-2" style={{ color: "var(--on-surface-variant)" }}>
+              <p className="mt-2 text-[12px] leading-relaxed" style={{ color: "var(--on-surface-variant)" }}>
                 {node.description}
               </p>
             ) : (
-              <p className="text-[12px] mt-2" style={{ color: "var(--outline)" }}>
+              <p className="mt-2 text-[12px]" style={{ color: "var(--outline)" }}>
                 Link a skill or add notes for this step.
               </p>
             )}
 
-            <div className="mt-4 flex flex-wrap gap-2">
-              {node.node_skills && node.node_skills.length > 0 ? (
-                node.node_skills.map((ns, idx) => (
+            <div className="mt-4 flex flex-wrap items-start gap-2">
+              {linkedSkills.length > 0 ? (
+                linkedSkills.map((skill) => (
                   <span
-                    key={idx}
-                    className="text-[11px] px-2.5 py-1.5 rounded-full"
+                    key={skill.key}
+                    className="inline-flex max-w-full items-center gap-2 rounded-2xl px-3 py-2 text-[11px] leading-[1.1]"
                     style={{
-                      background: "var(--surface-low)",
+                      background:
+                        "linear-gradient(180deg, rgba(255,255,255,0.78) 0%, rgba(255,255,255,0.56) 100%)",
                       color: "var(--on-surface-variant)",
-                      border: "1px solid rgba(0,73,219,0.08)",
+                      border: "1px solid rgba(0,73,219,0.10)",
                     }}
                   >
-                    {ns.skill?.icon ? `${ns.skill.icon} ` : ""}
-                    {ns.skill?.name || "Linked skill"}
+                    <span
+                      className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-xl text-[15px] leading-none"
+                      style={{
+                        background: "rgba(0,73,219,0.10)",
+                        color: "var(--primary)",
+                      }}
+                    >
+                      {skill.icon}
+                    </span>
+                    <span className="min-w-0 break-words font-semibold leading-snug">
+                      {skill.name}
+                    </span>
                   </span>
                 ))
-              ) : node.skill?.name ? (
-                <span
-                  className="text-[11px] px-2.5 py-1.5 rounded-full"
-                  style={{
-                    background: "var(--surface-low)",
-                    color: "var(--on-surface-variant)",
-                    border: "1px solid rgba(0,73,219,0.08)",
-                  }}
-                >
-                  {node.skill.icon ? `${node.skill.icon} ` : ""}
-                  {node.skill.name}
-                </span>
               ) : (
                 <span
-                  className="text-[11px] px-2.5 py-1.5 rounded-full"
+                  className="inline-flex items-center rounded-full px-2.5 py-1.5 text-[11px] leading-none"
                   style={{
-                    background: "rgba(0,0,0,0.03)",
+                    background: "rgba(0,0,0,0.04)",
                     color: "var(--outline)",
                   }}
                 >
@@ -187,7 +218,7 @@ function WorkflowNodeComponent({
       <Handle
         type="source"
         position={Position.Bottom}
-        style={{ background: 'var(--primary)', width: 8, height: 8, border: 'none', bottom: -4 }}
+        style={{ background: "var(--primary)", width: 8, height: 8, border: "none", bottom: -4 }}
         isConnectable={node.isOwner}
       />
     </>
@@ -228,7 +259,6 @@ function RoadmapWorkflowCanvasInner({
   const { fitView } = useReactFlow();
 
   const onToggleComplete = async (nodeId: string, completed: boolean) => {
-    // Optimistic update
     setNodes((prev) =>
       prev.map((n) =>
         n.id === nodeId ? { ...n, data: { ...n.data, completed } } : n
@@ -236,21 +266,20 @@ function RoadmapWorkflowCanvasInner({
     );
 
     const res = await fetch(`/api/roadmaps/${roadmapId}/nodes/${nodeId}/complete`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ completed }),
     });
 
     if (!res.ok) {
-        const payload = await res.json().catch(() => null);
-        // Revert on failure
-        setNodes((prev) =>
-            prev.map((n) =>
-                n.id === nodeId ? { ...n, data: { ...n.data, completed: !completed } } : n
-            )
-        );
-        toast.error(payload?.error || "Failed to update completion status");
-        return
+      const payload = await res.json().catch(() => null);
+      setNodes((prev) =>
+        prev.map((n) =>
+          n.id === nodeId ? { ...n, data: { ...n.data, completed: !completed } } : n
+        )
+      );
+      toast.error(payload?.error || "Failed to update completion status");
+      return;
     }
 
     const j = await res.json();
@@ -260,7 +289,7 @@ function RoadmapWorkflowCanvasInner({
     } else if (!completed) {
       toast.success("Roadmap step reopened");
     }
-  }
+  };
 
   const [nodes, setNodes, onNodesChange] = useNodesState(
     initialNodes.map((n) => ({
@@ -270,7 +299,8 @@ function RoadmapWorkflowCanvasInner({
       type: "workflow",
       style: {
         width: NODE_WIDTH,
-        height: NODE_HEIGHT,
+        minHeight: NODE_HEIGHT,
+        height: "auto",
         background: "transparent",
         border: "none",
       },
@@ -301,7 +331,7 @@ function RoadmapWorkflowCanvasInner({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(updates),
     });
-    
+
     if (!res.ok) {
       const j = await res.json();
       throw new Error(j.error || "Failed to save node");
@@ -330,12 +360,12 @@ function RoadmapWorkflowCanvasInner({
     const res = await fetch(`/api/roadmaps/${roadmapId}/nodes/${nodeId}`, {
       method: "DELETE",
     });
-    
+
     if (!res.ok) {
       const j = await res.json();
       throw new Error(j.error || "Failed to delete node");
     }
-    
+
     setNodes((nds) => nds.filter((n) => n.id !== nodeId));
     setEdges((eds) => eds.filter((e) => e.source !== nodeId && e.target !== nodeId));
     setEditNodeId(null);
@@ -344,19 +374,17 @@ function RoadmapWorkflowCanvasInner({
   const onConnect = useCallback(
     async (params: Connection) => {
       if (!isOwner) return;
-      if (params.source === params.target) return; // Prevent self-connection
+      if (params.source === params.target) return;
 
-      // Prevent duplicate edge
-      const isDuplicate = edges.some(e => e.source === params.source && e.target === params.target);
+      const isDuplicate = edges.some((e) => e.source === params.source && e.target === params.target);
       if (isDuplicate) return;
 
-      // Optimistic addition
       const tempId = `temp-${Date.now()}`;
       setEdges((eds) => addEdge({ ...params, id: tempId }, eds));
 
       const res = await fetch(`/api/roadmaps/${roadmapId}/edges`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           source: params.source,
           target: params.target,
@@ -364,14 +392,13 @@ function RoadmapWorkflowCanvasInner({
       });
 
       if (!res.ok) {
-        // Revert on failure
         setEdges((eds) => eds.filter((e) => e.id !== tempId));
         alert("Failed to create edge");
         return;
       }
 
       const newEdge = await res.json();
-      setEdges((eds) => eds.map((e) => e.id === tempId ? { ...e, id: newEdge.id } : e));
+      setEdges((eds) => eds.map((e) => (e.id === tempId ? { ...e, id: newEdge.id } : e)));
       router.refresh();
     },
     [isOwner, setEdges, roadmapId, edges, router]
@@ -382,11 +409,11 @@ function RoadmapWorkflowCanvasInner({
       if (!isOwner) return;
       const deletePromises = edgesToDelete.map((edge) =>
         fetch(`/api/roadmaps/${roadmapId}/edges/${edge.id}`, {
-          method: 'DELETE',
+          method: "DELETE",
         })
       );
       Promise.all(deletePromises).catch(() => {
-          router.refresh();
+        router.refresh();
       });
     },
     [roadmapId, isOwner, router]
@@ -426,18 +453,19 @@ function RoadmapWorkflowCanvasInner({
       alert(j.error || "Failed to add node");
       return;
     }
-    
+
     const newNodeData = await res.json();
     const newNode = {
       id: newNodeData.id,
       position: { x: newNodeData.x, y: newNodeData.y },
       data: normalizeNodePayload(newNodeData, isOwner, onToggleComplete),
-      type: 'workflow',
+      type: "workflow",
       style: {
         width: NODE_WIDTH,
-        height: NODE_HEIGHT,
-        background: 'transparent',
-        border: 'none',
+        minHeight: NODE_HEIGHT,
+        height: "auto",
+        background: "transparent",
+        border: "none",
       },
     };
 
@@ -455,36 +483,33 @@ function RoadmapWorkflowCanvasInner({
 
   return (
     <Fragment>
-      <div className="px-4 lg:px-10 py-6 lg:py-9 max-w-[1400px] mx-auto animate-fade-in">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+      <div className="mx-auto max-w-[1400px] animate-fade-in px-4 py-6 lg:px-10 lg:py-9">
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <Link
               href="/roadmaps"
-              className="text-xs font-bold mb-2 inline-block"
+              className="mb-2 inline-block text-xs font-bold"
               style={{ color: "var(--primary)" }}
             >
               ← Back to roadmaps
             </Link>
             <h1
-              className="font-display text-2xl lg:text-3xl font-extrabold text-[var(--on-surface)]"
+              className="font-display text-2xl font-extrabold text-[var(--on-surface)] lg:text-3xl"
               style={{ letterSpacing: -0.5 }}
             >
               {roadmapTitle}
             </h1>
-            <p
-              className="text-sm mt-1"
-              style={{ color: "var(--on-surface-variant)" }}
-            >
+            <p className="mt-1 text-sm" style={{ color: "var(--on-surface-variant)" }}>
               {isOwner
-                ? "Drag nodes to arrange. Click a node to edit."
-                : "Check off steps as you complete them."}
+                ? "Drag nodes to arrange. Double-click a node to edit."
+                : "Complete steps as you work through the roadmap."}
             </p>
           </div>
           <div className="flex gap-2">
             <button
               type="button"
               onClick={() => fitView({ duration: 800, padding: 0.2 })}
-              className="px-6 py-3 rounded-full text-sm font-bold text-white shrink-0 self-start btn-secondary"
+              className="btn-secondary shrink-0 self-start rounded-full px-6 py-3 text-sm font-bold text-white"
               style={{ background: "var(--surface-low)", color: "var(--on-surface)" }}
             >
               Center canvas
@@ -493,7 +518,7 @@ function RoadmapWorkflowCanvasInner({
               <button
                 type="button"
                 onClick={addNode}
-                className="px-6 py-3 rounded-full text-sm font-bold text-white btn-primary shrink-0 self-start"
+                className="btn-primary shrink-0 self-start rounded-full px-6 py-3 text-sm font-bold text-white"
               >
                 Add node
               </button>
@@ -502,16 +527,16 @@ function RoadmapWorkflowCanvasInner({
         </div>
       </div>
 
-      <div className="h-[560px] lg:h-[640px] rounded-3xl overflow-hidden relative">
+      <div className="relative h-[560px] overflow-hidden rounded-3xl lg:h-[640px]">
         <ReactFlow
           nodes={nodes}
           edges={edges}
           defaultEdgeOptions={{
-            type: 'smoothstep',
+            type: "smoothstep",
             style: {
-              stroke: 'var(--primary)',
+              stroke: "var(--primary)",
               strokeWidth: 3,
-              filter: 'drop-shadow(0 0 6px rgba(0, 73, 219, 0.3))',
+              filter: "drop-shadow(0 0 6px rgba(0, 73, 219, 0.3))",
             },
           }}
           onNodesChange={onNodesChange}
@@ -530,7 +555,6 @@ function RoadmapWorkflowCanvasInner({
         </ReactFlow>
       </div>
 
-      {/* Edit Modal */}
       <RoadmapNodeEditModal
         open={editNodeId !== null}
         onClose={() => setEditNodeId(null)}

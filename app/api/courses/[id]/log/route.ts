@@ -70,15 +70,15 @@ export async function POST(
 
   // Clamp units to remaining — never over-complete
   const safeUnits = Math.min(units_completed, remaining);
-  const { data: ownedSkills } = skill_ids.length
+  const { data: trackedSkills } = skill_ids.length
     ? await supabase
-        .from("skills")
-        .select("id")
+        .from("user_skills")
+        .select("skill_id")
         .eq("user_id", user.id)
-        .in("id", skill_ids)
-    : { data: [] as { id: string }[] };
+        .in("skill_id", skill_ids)
+    : { data: [] as { skill_id: string }[] };
 
-  const finalSkillIds = (ownedSkills || []).map((skill) => skill.id);
+  const finalSkillIds = (trackedSkills || []).map((skill) => skill.skill_id);
 
   // Handle optional new skill creation
   if (new_skill_name?.trim()) {
@@ -97,6 +97,21 @@ export async function POST(
     if (skillInsertError) {
       return NextResponse.json({ error: skillInsertError.message }, { status: 400 });
     }
+
+    const { error: userSkillError } = await supabase.from("user_skills").upsert(
+      {
+        user_id: user.id,
+        skill_id: newSkill.id,
+        xp: 0,
+        level: 0,
+      },
+      { onConflict: "user_id,skill_id" }
+    );
+
+    if (userSkillError) {
+      return NextResponse.json({ error: userSkillError.message }, { status: 400 });
+    }
+
     finalSkillIds.push(newSkill.id);
   }
 

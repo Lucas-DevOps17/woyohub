@@ -61,13 +61,13 @@ export async function PUT(
         );
 
         if (safeSkillIds.length > 0) {
-          const { data: ownedSkills } = await supabase
-            .from("skills")
-            .select("id")
+          const { data: trackedSkills } = await supabase
+            .from("user_skills")
+            .select("skill_id")
             .eq("user_id", user.id)
-            .in("id", safeSkillIds);
+            .in("skill_id", safeSkillIds);
 
-          (ownedSkills || []).forEach((skill) => resolvedSkillIds.add(skill.id));
+          (trackedSkills || []).forEach((skill) => resolvedSkillIds.add(skill.skill_id));
         }
       }
 
@@ -84,7 +84,20 @@ export async function PUT(
           .single();
 
         if (skillCreateError) throw skillCreateError;
-        if (createdSkill?.id) resolvedSkillIds.add(createdSkill.id);
+        if (createdSkill?.id) {
+          const { error: userSkillError } = await supabase.from("user_skills").upsert(
+            {
+              user_id: user.id,
+              skill_id: createdSkill.id,
+              xp: 0,
+              level: 0,
+            },
+            { onConflict: "user_id,skill_id" }
+          );
+
+          if (userSkillError) throw userSkillError;
+          resolvedSkillIds.add(createdSkill.id);
+        }
       }
 
       if (resolvedSkillIds.size > 0) {

@@ -250,8 +250,9 @@ export function RoadmapWorkflowCanvas({
 
       const newEdge = await res.json();
       setEdges((eds) => eds.map((e) => e.id === tempId ? { ...e, id: newEdge.id } : e));
+      router.refresh();
     },
-    [isOwner, setEdges, roadmapId, edges]
+    [isOwner, setEdges, roadmapId, edges, router]
   );
 
   const onEdgesDelete = useCallback(
@@ -319,6 +320,7 @@ export function RoadmapWorkflowCanvas({
     };
 
     setNodes((nds) => [...nds, newNode]);
+    router.refresh();
   }
 
   const nodeTypes = useMemo(

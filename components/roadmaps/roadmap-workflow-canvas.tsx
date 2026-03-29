@@ -16,6 +16,8 @@ import ReactFlow, {
   addEdge,
   Connection,
   Edge,
+  Handle,
+  Position,
 } from "reactflow";
 import "reactflow/dist/style.css";
 import type { SkillOption } from "@/components/roadmaps/roadmap-form-modal";
@@ -49,16 +51,23 @@ function WorkflowNodeComponent({
 }) {
 
   return (
-    <div
-      className="w-full h-full rounded-2xl p-4 cursor-pointer select-none"
-      style={{
-        background: "var(--surface-card)",
-        boxShadow: node.completed
-          ? "0 8px 28px rgba(0,102,49,0.12)"
-          : "0 8px 28px rgba(0,73,219,0.06)",
-        border: "2px solid transparent",
-      }}
-    >
+    <>
+      <Handle
+        type="target"
+        position={Position.Top}
+        style={{ background: 'var(--primary)', width: 8, height: 8, border: 'none', top: -4 }}
+        isConnectable={node.isOwner}
+      />
+      <div
+        className="w-full h-full rounded-2xl p-4 cursor-pointer select-none relative"
+        style={{
+          background: "var(--surface-card)",
+          boxShadow: node.completed
+            ? "0 8px 28px rgba(0,102,49,0.12)"
+            : "0 8px 28px rgba(0,73,219,0.06)",
+          border: "2px solid transparent",
+        }}
+      >
       <label
         className="flex items-start gap-2 cursor-pointer"
         onClick={(e) => e.stopPropagation()}
@@ -86,7 +95,14 @@ function WorkflowNodeComponent({
           ) : null}
         </span>
       </label>
-    </div>
+      </div>
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        style={{ background: 'var(--primary)', width: 8, height: 8, border: 'none', bottom: -4 }}
+        isConnectable={node.isOwner}
+      />
+    </>
   );
 }
 
@@ -164,6 +180,16 @@ export function RoadmapWorkflowCanvas({
   const onConnect = useCallback(
     async (params: Connection) => {
       if (!isOwner) return;
+      if (params.source === params.target) return; // Prevent self-connection
+
+      // Prevent duplicate edge
+      const isDuplicate = edges.some(e => e.source === params.source && e.target === params.target);
+      if (isDuplicate) return;
+
+      // Optimistic addition
+      const tempId = `temp-${Date.now()}`;
+      setEdges((eds) => addEdge({ ...params, id: tempId }, eds));
+
       const res = await fetch(`/api/roadmaps/${roadmapId}/edges`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -174,14 +200,16 @@ export function RoadmapWorkflowCanvas({
       });
 
       if (!res.ok) {
+        // Revert on failure
+        setEdges((eds) => eds.filter((e) => e.id !== tempId));
         alert("Failed to create edge");
         return;
       }
 
       const newEdge = await res.json();
-      setEdges((eds) => addEdge({ ...params, id: newEdge.id }, eds));
+      setEdges((eds) => eds.map((e) => e.id === tempId ? { ...e, id: newEdge.id } : e));
     },
-    [isOwner, setEdges, roadmapId]
+    [isOwner, setEdges, roadmapId, edges]
   );
 
   const onEdgesDelete = useCallback(
@@ -301,6 +329,14 @@ export function RoadmapWorkflowCanvas({
         <ReactFlow
           nodes={nodes}
           edges={edges}
+          defaultEdgeOptions={{
+            type: 'smoothstep',
+            style: {
+              stroke: 'var(--primary)',
+              strokeWidth: 3,
+              filter: 'drop-shadow(0 0 6px rgba(0, 73, 219, 0.3))',
+            },
+          }}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}

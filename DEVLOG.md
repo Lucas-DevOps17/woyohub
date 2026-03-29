@@ -173,6 +173,23 @@ Canvas-style workflow nodes (roadmap.sh–style layout) with per-user completion
 - [x] `app/(dashboard)/roadmaps/[id]/page.tsx` + `components/roadmaps/roadmap-workflow-canvas.tsx` — Framer Motion drag (owners), checkbox completion, add/edit/delete nodes
 - [x] `roadmaps-client.tsx` — **Open** link to detail page; tertiary **glow** on active roadmap card; step count label in graph mode
 
+### Phase 2D — Roadmap Graph System (Update)
+
+* [x] Node connections (edges) implemented
+* [x] React Flow integration (handles, onConnect)
+* [x] `roadmap_edges` persistence (DB + fetch)
+* [x] Multiple connections per node supported
+* [x] Styled edges (design system compliant)
+
+**Files updated:**
+* `components/roadmaps/roadmap-workflow-canvas.tsx`
+
+**Notes:**
+* Connections are created via React Flow's `onConnect`, utilizing `Position.Top` and `Position.Bottom` handles for a vertical flow.
+* Optimistic UI additions apply edge styles automatically. Edges support multiple outbound connections.
+* Duplicate edges and self-loop connections are prevented in the `onConnect` callback.
+* DB persistence is handled via `/api/roadmaps/[id]/edges`.
+
 ### Phase 3 — Gamification & Polish
 - [ ] Streak system (daily tracking, freeze feature)
 - [ ] Achievement auto-unlock on milestones

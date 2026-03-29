@@ -95,6 +95,14 @@ export async function PATCH(
     }
     if (insertedSkill) {
       skillIds.push(insertedSkill.id);
+      
+      // Auto-track the new skill for the user with 0 XP so it immediately appears on their Skills page
+      await supabase.from("user_skills").insert({
+        user_id: user.id,
+        skill_id: insertedSkill.id,
+        xp: 0,
+        level: 0,
+      });
     }
   }
 

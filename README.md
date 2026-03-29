@@ -4,10 +4,10 @@
 
 ## Tech Stack
 
-- **Frontend:** Next.js 14 (App Router) + Tailwind CSS
-- **Backend:** Supabase (PostgreSQL, Auth, Storage, Edge Functions)
-- **Deployment:** Vercel
-- **State:** TanStack Query + Zustand
+- **Frontend:** Next.js 14 (App Router) + Tailwind CSS + React Flow
+- **Backend:** Supabase (PostgreSQL, Auth, RLS Policies)
+- **Deployment:** Vercel (CI/CD)
+- **Design:** "Intellectual Ascent" System (Manrope + Inter, soft gradients, no borders)
 
 ## Getting Started
 
@@ -17,12 +17,11 @@
 2. Name: `woyohub`, pick your region
 3. Save your database password
 
-### 2. Run the Database Migration
+### 2. Run the Database Migrations
 
 1. In your Supabase dashboard, go to **SQL Editor**
-2. Copy the contents of `supabase/migrations/001_initial_schema.sql`
-3. Paste and click **Run**
-4. This creates all tables, RLS policies, triggers, and seed data
+2. Apply the migration files from `supabase/migrations/` in numerical order (001 through 006).
+3. This creates all tables, RLS policies, trigger functions, the XP RPC calculations, and seed data.
 
 ### 3. Enable Google OAuth (Optional)
 
@@ -48,54 +47,44 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000)
 
-### 6. Deploy to Vercel
-
-1. Push to GitHub
-2. Import in [vercel.com](https://vercel.com)
-3. Add environment variables in Vercel project settings
-4. Deploy
-
 ## Project Structure
 
-```
+```text
 woyohub/
 ├── app/
-│   ├── (auth)/          # Login, signup, OAuth callback
-│   ├── (dashboard)/     # Main app pages (sidebar layout)
-│   │   ├── dashboard/   # Home dashboard
-│   │   ├── courses/     # Course tracking
-│   │   ├── skills/      # Skill progression
-│   │   ├── roadmaps/    # Career roadmaps
-│   │   ├── projects/    # Project portfolio
-│   │   ├── achievements/# Badges & achievements
-│   │   └── settings/    # User settings
-│   ├── globals.css
-│   ├── layout.tsx       # Root layout
-│   └── page.tsx         # Landing page
+│   ├── (auth)/          # Auth flows & OAuth callbacks with Email Allowlisting
+│   ├── (dashboard)/     # Main app routes
+│   │   ├── dashboard/   # XP hero, active roadmap fetch, recent logs
+│   │   ├── courses/     # Interactive course library and Learning Log integration
+│   │   ├── skills/      # Skill tree grid with XP calculations
+│   │   ├── roadmaps/    # Custom visual roadmaps leveraging React Flow Canvas
+│   │   ├── projects/    # Project portfolio tied to skill upgrades
+│   │   ├── achievements/# Gamification badges
+│   │   └── settings/    # Profile + appearance + Danger zone
+│   ├── api/             # App Router Endpoints for Roadmap nodes, edges, logs, XP logic
+│   ├── globals.css      # Core tailwind setup + dark mode classes
+│   └── layout.tsx       # Root layout defining dynamic Dual Typography (Manrope/Inter)
 ├── components/
-│   ├── ui/              # Reusable UI components
-│   ├── layout/          # Sidebar, header
-│   ├── dashboard/       # Dashboard widgets
-│   ├── courses/         # Course components
-│   ├── projects/        # Project components
-│   └── gamification/    # XP, streaks, badges
+│   ├── dashboard/       # Client-side interaction components
+│   ├── layout/          # Sidebar / Glassmorphic top bar / UI shells
+│   ├── roadmaps/        # Workflow Canvas components, ReactFlow logic, and Modals
+│   └── ui/              # Shared elements
 ├── lib/
-│   ├── supabase/        # Client, server, middleware
-│   ├── hooks/           # Custom React hooks
-│   ├── store/           # Zustand stores
-│   └── utils/           # Helper functions
-├── types/               # TypeScript types
+│   ├── progression.ts   # Core XP engine to distribute, scale, and calculate skills
+│   └── supabase/        # Next.js 14 advanced SSR clients via @supabase/ssr
 ├── supabase/
-│   └── migrations/      # SQL migration files
-└── public/              # Static assets
+│   └── migrations/      # 001-006 containing advanced Row Level Security and RPCs
+└── types/               # TypeScript Definitions matching DB types
 ```
 
-## Build Phases
+## Build Phases & Scope
 
-- **Phase 1 (MVP):** ✅ Auth, Courses, Dashboard, XP
-- **Phase 2:** Skills, Roadmaps, Projects
-- **Phase 3:** Gamification (badges, streaks), UI polish
-- **Phase 4:** Skill graph, AI recommendations, PWA
+- **Phase 1 (MVP):** ✅ Complete (Project scaffolding, Schema, Access Control, 9-page Layout Rewrite, UI foundations)
+- **Phase 2 (Data Integration & Workflow):** ✅ Complete (Real-time DB hooks, API implementations, Learning Logs Engine, Project CRUD, Visual Workflow Canvas for Node-based Roadmaps, Ambiguity Bugfixes)
+- **Phase 3 (Gamification & Polish):** ⏳ In Progress (Streaks, Badges, Level-up animations, UI micro-interactions, Loading Skeletons)
+- **Phase 4 (Advanced):** ⏳ Upcoming (Skill graphs, AI roadmap generation, GitHub/Calendar integratons)
+
+See `DEVLOG.md` for full implementation and phase specifics.
 
 ## License
 

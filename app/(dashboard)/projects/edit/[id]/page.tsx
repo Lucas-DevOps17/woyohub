@@ -36,7 +36,7 @@ function EditProjectForm() {
     supabase.from("skills").select("*").order("category").then(({ data }) => {
       if (data) setSkills(data);
     });
-  }, []);
+  }, [supabase]);
 
   useEffect(() => {
     if (params.id) {
@@ -62,7 +62,7 @@ function EditProjectForm() {
           setLoading(false);
         });
     }
-  }, [params.id]);
+  }, [params.id, supabase]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -99,16 +99,6 @@ function EditProjectForm() {
           is_cover: true
         });
       }
-    }
-
-    // If newly completed, award XP
-    if (status === "completed") {
-      // NOTE: server side idempotency required
-      await fetch("/api/projects/complete", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ projectId: params.id }),
-      });
     }
 
     router.push("/projects");

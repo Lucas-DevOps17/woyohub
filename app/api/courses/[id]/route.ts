@@ -12,7 +12,7 @@ export async function PUT(
 
   try {
     const json = await request.json();
-    const { title, platform, total_units, status } = json;
+    const { title, platform, total_units, status, url } = json;
 
     const { data: course, error } = await supabase
       .from("courses")
@@ -20,7 +20,8 @@ export async function PUT(
         title,
         platform,
         total_units,
-        status
+        status,
+        url: typeof url === "string" ? url || null : null,
       })
       .eq("id", params.id)
       .eq("user_id", user.id)

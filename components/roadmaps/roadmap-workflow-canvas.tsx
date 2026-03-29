@@ -48,6 +48,21 @@ export type WorkflowEdge = {
 const NODE_WIDTH = 220;
 const NODE_HEIGHT = 88;
 
+function normalizeNodePayload(node: any, isOwner: boolean, onToggleComplete: (nodeId: string, completed: boolean) => void) {
+  return {
+    ...node,
+    skill: node.skill && Array.isArray(node.skill) ? node.skill[0] : node.skill,
+    node_skills: Array.isArray(node.node_skills)
+      ? node.node_skills.map((entry: any) => ({
+          ...entry,
+          skill: Array.isArray(entry.skill) ? entry.skill[0] : entry.skill,
+        }))
+      : [],
+    isOwner,
+    onToggleComplete,
+  };
+}
+
 function WorkflowNodeComponent({
   data: node,
 }: {
@@ -81,7 +96,6 @@ function WorkflowNodeComponent({
           type="checkbox"
           checked={node.completed}
           onChange={(e) => node.onToggleComplete(node.id, e.target.checked)}
-          disabled={!node.isOwner}
           className="mt-1 rounded"
         />
         <span className="flex-1 min-w-0">
@@ -94,7 +108,7 @@ function WorkflowNodeComponent({
                 <span
                   key={idx}
                   className="text-[10px] px-1.5 py-0.5 rounded"
-                  style={{ background: "var(--surface-high)", color: "var(--on-surface-variant)" }}
+                  style={{ background: "var(--surface-low)", color: "var(--on-surface-variant)" }}
                 >
                   {ns.skill?.icon ? `${ns.skill.icon} ` : ""}
                   {ns.skill?.name}
@@ -191,7 +205,7 @@ function RoadmapWorkflowCanvasInner({
     initialNodes.map((n) => ({
       id: n.id,
       position: { x: n.x, y: n.y },
-      data: { ...n, isOwner, onToggleComplete },
+      data: normalizeNodePayload(n, isOwner, onToggleComplete),
       type: "workflow",
       style: {
         width: NODE_WIDTH,
@@ -231,8 +245,23 @@ function RoadmapWorkflowCanvasInner({
       const j = await res.json();
       throw new Error(j.error || "Failed to save node");
     }
-    
-    router.refresh(); // Or optimistically update the node in local state
+
+    const json = await res.json();
+    if (json.node) {
+      setNodes((prev) =>
+        prev.map((current) =>
+          current.id === nodeId
+            ? {
+                ...current,
+                position: { x: json.node.x, y: json.node.y },
+                data: normalizeNodePayload(json.node, isOwner, onToggleComplete),
+              }
+            : current
+        )
+      );
+    }
+
+    router.refresh();
     setEditNodeId(null);
   };
 
@@ -328,7 +357,7 @@ function RoadmapWorkflowCanvasInner({
         x: 100,
         y: yPos,
         description: null,
-        skill_id: null,
+        skills: [],
       }),
     });
     if (!res.ok) {
@@ -341,7 +370,7 @@ function RoadmapWorkflowCanvasInner({
     const newNode = {
       id: newNodeData.id,
       position: { x: newNodeData.x, y: newNodeData.y },
-      data: { ...newNodeData, isOwner, onToggleComplete },
+      data: normalizeNodePayload(newNodeData, isOwner, onToggleComplete),
       type: 'workflow',
       style: {
         width: NODE_WIDTH,
@@ -352,6 +381,7 @@ function RoadmapWorkflowCanvasInner({
     };
 
     setNodes((nds) => [...nds, newNode]);
+    setEditNodeId(newNodeData.id);
     router.refresh();
   }
 

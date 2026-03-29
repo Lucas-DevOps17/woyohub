@@ -53,7 +53,7 @@ export default function CoursesPage() {
 
   // Edit Course State
   const [editingCourse, setEditingCourse] = useState<string | null>(null);
-  const [editCourseData, setEditCourseData] = useState<{title: string, platform: string, total_units: number, status: string}>({ title: "", platform: "", total_units: 1, status: "active" });
+  const [editCourseData, setEditCourseData] = useState<{title: string, platform: string, total_units: number, status: string, url: string}>({ title: "", platform: "", total_units: 1, status: "active", url: "" });
 
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -340,7 +340,7 @@ export default function CoursesPage() {
                     <div className="flex items-center gap-2">
                       <button onClick={() => {
                         setEditingCourse(isEditingThisCourse ? null : c.id);
-                        setEditCourseData({title: c.title, platform: c.platform, total_units: c.total_units, status: c.status});
+                        setEditCourseData({title: c.title, platform: c.platform, total_units: c.total_units, status: c.status, url: c.url || ""});
                       }} className="bg-black/30 hover:bg-black/50 text-white p-2 rounded-full transition-colors hover-scale">
                         <Edit2 size={16} />
                       </button>
@@ -364,8 +364,9 @@ export default function CoursesPage() {
                        <div className="flex flex-col gap-4 mb-6 bg-blue-50/50 p-4 rounded-2xl dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/20">
                           <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Edit Course</label>
                           <input type="text" value={editCourseData.title} onChange={e => setEditCourseData(d=>({...d, title: e.target.value}))} className="w-full px-4 py-2.5 rounded-[12px] bg-white border outline-none text-[15px]"/>
-                          <div className="flex gap-4">
+                          <div className="flex gap-4 flex-wrap">
                             <input type="text" placeholder="Platform" value={editCourseData.platform} onChange={e => setEditCourseData(d=>({...d, platform: e.target.value}))} className="flex-1 px-4 py-2.5 rounded-[12px] bg-white border outline-none text-[15px]"/>
+                            <input type="url" placeholder="Course URL" value={editCourseData.url} onChange={e => setEditCourseData(d=>({...d, url: e.target.value}))} className="flex-1 min-w-[220px] px-4 py-2.5 rounded-[12px] bg-white border outline-none text-[15px]"/>
                             <input type="number" min="1" placeholder="Total Units" value={editCourseData.total_units} onChange={e => setEditCourseData(d=>({...d, total_units: parseInt(e.target.value)||1}))} className="w-32 px-4 py-2.5 rounded-[12px] bg-white border outline-none text-[15px]"/>
                             <select value={editCourseData.status} onChange={e => setEditCourseData(d=>({...d, status: e.target.value}))} className="px-4 py-2.5 rounded-[12px] bg-white border outline-none text-[15px]">
                                <option value="active">Active</option>
@@ -385,15 +386,29 @@ export default function CoursesPage() {
                         >
                           {c.title}
                         </h3>
-                        {remaining > 0 && openFormId !== c.id && (
-                          <button
-                            onClick={() => openForm(c.id, remaining)}
-                            className="shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold text-white btn-primary hover-scale press-sink"
-                          >
-                            <Plus size={14} />
-                            Add Logs
-                          </button>
-                        )}
+                        <div className="flex items-center gap-2">
+                          {c.url ? (
+                            <a
+                              href={c.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold hover-scale press-sink"
+                              style={{ background: "var(--surface-low)", color: "var(--primary)" }}
+                            >
+                              <ExternalLink size={14} />
+                              Go to Course
+                            </a>
+                          ) : null}
+                          {remaining > 0 && openFormId !== c.id && (
+                            <button
+                              onClick={() => openForm(c.id, remaining)}
+                              className="shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold text-white btn-primary hover-scale press-sink"
+                            >
+                              <Plus size={14} />
+                              Add Logs
+                            </button>
+                          )}
+                        </div>
                         {openFormId === c.id && !editingLog && (
                           <button
                             onClick={closeForm}

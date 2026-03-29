@@ -38,8 +38,9 @@ export async function POST(
 
   const description =
     typeof body.description === "string" ? body.description.trim() || null : null;
-  const skill_id =
-    typeof body.skill_id === "string" && body.skill_id ? body.skill_id : null;
+  const selectedSkillIds = Array.isArray(body.skills)
+    ? body.skills.filter((skillId): skillId is string => typeof skillId === "string" && skillId.length > 0)
+    : [];
   const x = typeof body.x === "number" && Number.isFinite(body.x) ? body.x : 0;
   const y = typeof body.y === "number" && Number.isFinite(body.y) ? body.y : 0;
 
@@ -49,7 +50,7 @@ export async function POST(
       roadmap_id: params.id,
       title,
       description,
-      skill_id,
+      skill_id: selectedSkillIds[0] ?? null,
       x,
       y,
     })
@@ -60,11 +61,47 @@ export async function POST(
     return NextResponse.json({ error: error?.message ?? "Failed to create node" }, { status: 400 });
   }
 
+  const skillIds = [...selectedSkillIds];
+
+  if (typeof body.new_skill_name === "string" && body.new_skill_name.trim()) {
+    const { data: createdSkill } = await supabase
+      .from("skills")
+      .insert({
+        name: body.new_skill_name.trim(),
+        icon: typeof body.new_skill_icon === "string" ? body.new_skill_icon.trim() || null : null,
+        category: "custom",
+      })
+      .select("id, name, icon")
+      .single();
+
+    if (createdSkill) {
+      skillIds.push(createdSkill.id);
+      await supabase.from("user_skills").upsert(
+        { user_id: user.id, skill_id: createdSkill.id, xp: 0, level: 0 },
+        { onConflict: "user_id,skill_id" }
+      );
+    }
+  }
+
+  if (skillIds.length > 0) {
+    await supabase.from("roadmap_node_skills").insert(
+      skillIds.map((skillId) => ({
+        node_id: node.id,
+        skill_id: skillId,
+      }))
+    );
+  }
+
+  const { data: skillRows } = await supabase
+    .from("roadmap_node_skills")
+    .select("skill_id, skill:skills(name, icon)")
+    .eq("node_id", node.id);
+
   // Include default properties for the new node so ReactFlow renders it correctly.
   return NextResponse.json({ 
     ...node, 
     completed: false, 
     skill: null,
-    node_skills: []
+    node_skills: skillRows ?? []
   });
 }

@@ -19,7 +19,7 @@ export async function POST(
   const roadmapId = params.id;
   const { source, target } = await request.json();
 
-  if (!source || !target) {
+  if (!source || !target || source === target) {
     return new NextResponse(JSON.stringify({ error: 'Missing source or target' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' },
@@ -45,6 +45,31 @@ export async function POST(
         status: 403,
         headers: { 'Content-Type': 'application/json' },
       });
+  }
+
+  const { data: linkedNodes } = await supabase
+    .from("roadmap_nodes")
+    .select("id")
+    .eq("roadmap_id", roadmapId)
+    .in("id", [source, target]);
+
+  if ((linkedNodes || []).length !== 2) {
+    return new NextResponse(JSON.stringify({ error: "Both nodes must belong to this roadmap" }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  const { data: existingEdge } = await supabase
+    .from("roadmap_edges")
+    .select("id")
+    .eq("roadmap_id", roadmapId)
+    .eq("source_node_id", source)
+    .eq("target_node_id", target)
+    .maybeSingle();
+
+  if (existingEdge) {
+    return NextResponse.json(existingEdge);
   }
 
   const { data: newEdge, error } = await supabase

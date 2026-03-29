@@ -476,3 +476,44 @@ This project is developed by multiple AI agents in parallel conversations. Each 
 - `app/(dashboard)/settings/page.tsx`
 - Lint still reports a `next/image` recommendation in `components/projects/deployment-preview.tsx`.
 - The updated progression code now depends on migration `010_atomic_progression_repairs.sql`; apply that migration before deploying these app changes.
+
+---
+
+## 2026-03-30 Repair Pass 2 (Codex)
+
+### Completed
+
+- Added `Go to Course` CTA on course cards when a course URL exists.
+- Extended course editing so URLs can be updated from the courses page.
+- Fixed `app/api/logs/[id]/route.ts` to use the real `learning_logs.content` field instead of the non-existent `summary` column.
+- Fixed `app/api/logs/[id]/route.ts` to use `learning_log_id` instead of the wrong `log_id` foreign key when updating linked skills.
+- Learning log updates/deletes now recalculate the parent course progress (`completed_units` + `status`) after changes.
+- Completed project creation now triggers `recompute_user_xp`, so project-linked skills show up correctly in Skill Tree / Skills.
+- Removed the extra `/api/projects/complete` dependency from the create/edit project forms to avoid stale or missing skill progression.
+- Added skills CRUD server routes:
+- `POST /api/skills`
+- `PUT /api/skills/[id]`
+- `DELETE /api/skills/[id]`
+- Replaced the old read-only skills page with a client-side skills management page that supports create, read, update, and delete.
+- Added `supabase/migrations/011_skills_crud_policies.sql` to allow authenticated skill updates/deletes.
+- Repaired roadmap node payload normalization so linked skills render correctly on cards.
+- Repaired roadmap node create/update routes so node skill links are persisted and returned consistently.
+- Roadmap node completion now has a direct fallback path that updates node state, XP history, and recomputed skill progress even if the newer RPC helper is unavailable.
+- Roadmap edge creation now validates source/target nodes and avoids duplicate edges for the same roadmap.
+
+### Verification
+
+- `npx.cmd tsc --noEmit` passes.
+- `npm.cmd run lint` passes.
+
+### Still Open
+
+- Lint still reports `react-hooks/exhaustive-deps` warnings in:
+- `app/(dashboard)/courses/new/page.tsx`
+- `app/(dashboard)/courses/page.tsx`
+- `app/(dashboard)/courses/[id]/page.tsx`
+- `app/(dashboard)/projects/page.tsx`
+- `app/(dashboard)/settings/page.tsx`
+- `app/(dashboard)/skills/page.tsx`
+- Lint still reports a `next/image` recommendation in `components/projects/deployment-preview.tsx`.
+- If the database has not yet applied migrations `010_atomic_progression_repairs.sql` and `011_skills_crud_policies.sql`, the newly repaired server flows will not fully match the app code.

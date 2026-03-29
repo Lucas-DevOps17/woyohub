@@ -19,6 +19,26 @@ function normalizeSkillJoin(
   return { name: s.name, icon: s.icon ?? null };
 }
 
+function normalizeNodeSkillsJoin(
+  nodeSkills: unknown
+): { skill_id: string; skill?: { name: string; icon: string | null } }[] {
+  if (!Array.isArray(nodeSkills)) return [];
+
+  const normalized: { skill_id: string; skill?: { name: string; icon: string | null } }[] = [];
+
+  for (const entry of nodeSkills) {
+    if (!entry || typeof entry !== "object") continue;
+    const row = entry as { skill_id?: string; skill?: unknown };
+    if (!row.skill_id) continue;
+    normalized.push({
+      skill_id: row.skill_id,
+      skill: normalizeSkillJoin(row.skill) ?? undefined,
+    });
+  }
+
+  return normalized;
+}
+
 export default async function RoadmapDetailPage({ params }: { params: { id: string } }) {
   const supabase = createServerSupabaseClient();
   const {
@@ -74,7 +94,7 @@ export default async function RoadmapDetailPage({ params }: { params: { id: stri
     y: n.y,
     completed: stateMap.get(n.id) ?? false,
     skill: normalizeSkillJoin(n.skill),
-    node_skills: (n as any).node_skills,
+    node_skills: normalizeNodeSkillsJoin((n as any).node_skills),
   }));
 
   const initialEdges: WorkflowEdge[] = (edgeRows ?? []).map((e) => ({

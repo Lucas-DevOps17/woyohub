@@ -131,7 +131,13 @@ export async function PATCH(
     }
   }
 
-  return NextResponse.json({ success: true });
+  const { data: updatedNode } = await supabase
+    .from("roadmap_nodes")
+    .select("id, title, description, skill_id, x, y, skill:skills!roadmap_nodes_skill_id_fkey(name, icon), node_skills:roadmap_node_skills(skill_id, skill:skills(name, icon))")
+    .eq("id", params.nodeId)
+    .single();
+
+  return NextResponse.json({ success: true, node: updatedNode });
 }
 
 export async function DELETE(

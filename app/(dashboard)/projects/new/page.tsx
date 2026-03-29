@@ -34,7 +34,7 @@ function NewProjectForm() {
     supabase.from("skills").select("*").order("category").then(({ data }) => {
       if (data) setSkills(data);
     });
-  }, []);
+  }, [supabase]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -97,13 +97,14 @@ function NewProjectForm() {
       });
     }
 
-    // If status is completed, award XP
-    if (status === "completed") {
-      await fetch("/api/projects/complete", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ projectId: project.id }),
-      });
+    const { error: recomputeError } = await supabase.rpc("recompute_user_xp", {
+      p_user_id: user.id,
+    });
+
+    if (recomputeError) {
+      setError(recomputeError.message);
+      setLoading(false);
+      return;
     }
 
     router.push("/projects");

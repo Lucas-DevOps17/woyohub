@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import type { Skill } from "@/types";
+import { ProjectImageUploader } from "@/components/projects/ProjectImageUploader";
 
 const STATUS_OPTIONS = [
   { value: "planned", label: "Planned" },
@@ -28,8 +29,10 @@ function EditProjectForm() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string>("");
 
   useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id || ""));
     supabase.from("skills").select("*").order("category").then(({ data }) => {
       if (data) setSkills(data);
     });
@@ -85,8 +88,22 @@ function EditProjectForm() {
       return;
     }
 
+    // Optional Auto Screenshot logic if demo is added and no images exist.
+    if (demoUrl) {
+      const { count } = await supabase.from("project_images").select("*", { count: "exact" }).eq("project_id", params.id);
+      if (count === 0) {
+        const thumUrl = `https://image.thum.io/get/fullpage/${demoUrl}`;
+        await supabase.from("project_images").insert({
+          project_id: params.id,
+          image_url: thumUrl,
+          is_cover: true
+        });
+      }
+    }
+
     // If newly completed, award XP
     if (status === "completed") {
+      // NOTE: server side idempotency required
       await fetch("/api/projects/complete", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -129,6 +146,13 @@ function EditProjectForm() {
         <h1 className="font-display text-2xl lg:text-3xl font-extrabold text-[var(--on-surface)]" style={{ letterSpacing: -0.5 }}>
           Edit project
         </h1>
+      </div>
+
+      <div className="mb-8">
+        <label className="text-[11px] font-bold tracking-[1.5px] uppercase block mb-3" style={{ color: "var(--outline)" }}>
+          Project Images
+        </label>
+        {userId && <ProjectImageUploader projectId={params.id as string} userId={userId} />}
       </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">

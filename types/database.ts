@@ -125,6 +125,14 @@ export type Lesson = {
   notes: string | null;
 };
 
+export type ProjectImage = {
+  id: string;
+  project_id: string;
+  image_url: string;
+  is_cover: boolean;
+  created_at: string;
+};
+
 export type Project = {
   id: string;
   user_id: string;
@@ -136,6 +144,8 @@ export type Project = {
   image_url: string | null;
   created_at: string;
   updated_at: string;
+  // Joined
+  project_images?: ProjectImage[];
 };
 
 export type ProjectSkill = {

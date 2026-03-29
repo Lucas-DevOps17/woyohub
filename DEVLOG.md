@@ -210,6 +210,15 @@ Canvas-style workflow nodes (roadmap.sh–style layout) with per-user completion
 - `components/projects/ProjectCard.tsx`
 - `app/(dashboard)/projects/page.tsx`
 
+### Phase 3C — Projects Hall of Fame Upgrade ✅ Complete
+- [x] `project_images` table with zero-id UUID generation trick
+- [x] API routes (`POST /api/projects/[id]/images`, `DELETE`)
+- [x] Multi-image Drag & Drop `ProjectImageUploader`
+- [x] `ProjectCardHero` with Framer Motion hover & zoom
+- [x] Full-screen `ProjectGalleryModal`
+- [x] Optional implicit Thum.io cover generation
+
+
 ### Phase 3B — Gamification & Polish
 - [ ] Streak system (daily tracking, freeze feature)
 - [ ] Achievement auto-unlock on milestones

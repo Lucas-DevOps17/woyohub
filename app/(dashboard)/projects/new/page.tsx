@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import type { Skill } from "@/types";
+import { ProjectImageUploader } from "@/components/projects/ProjectImageUploader";
 
 const STATUS_OPTIONS = [
   { value: "planned", label: "Planned" },
@@ -14,6 +15,7 @@ const STATUS_OPTIONS = [
 ];
 
 function NewProjectForm() {
+  const [projectId] = useState(() => crypto.randomUUID());
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState("planned");
@@ -25,8 +27,10 @@ function NewProjectForm() {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const supabase = createClient();
+  const [userId, setUserId] = useState<string>("");
 
   useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id || ""));
     supabase.from("skills").select("*").order("category").then(({ data }) => {
       if (data) setSkills(data);
     });
@@ -48,6 +52,7 @@ function NewProjectForm() {
     const { data: project, error: insertError } = await supabase
       .from("projects")
       .insert({
+        id: projectId,
         user_id: user.id,
         title,
         description: description || null,
@@ -78,6 +83,18 @@ function NewProjectForm() {
         setLoading(false);
         return;
       }
+    }
+
+    // Optional Auto Screenshot if demo URL present and no images uploaded
+    // To implement "OPTIONAL AUTO SCREENSHOT", check if project_images has entries
+    const { count } = await supabase.from("project_images").select("*", { count: "exact" }).eq("project_id", project.id);
+    if (count === 0 && demoUrl) {
+      const thumUrl = `https://image.thum.io/get/fullpage/${demoUrl}`;
+      await supabase.from("project_images").insert({
+        project_id: project.id,
+        image_url: thumUrl,
+        is_cover: true
+      });
     }
 
     // If status is completed, award XP
@@ -116,6 +133,13 @@ function NewProjectForm() {
         <h1 className="font-display text-2xl lg:text-3xl font-extrabold text-[var(--on-surface)]" style={{ letterSpacing: -0.5 }}>
           Add a project
         </h1>
+      </div>
+
+      <div className="mb-8">
+        <label className="text-[11px] font-bold tracking-[1.5px] uppercase block mb-3" style={{ color: "var(--outline)" }}>
+          Project Images (optional)
+        </label>
+        {userId && <ProjectImageUploader projectId={projectId} userId={userId} />}
       </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">

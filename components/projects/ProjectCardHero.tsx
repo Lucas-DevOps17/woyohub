@@ -145,16 +145,16 @@ export function ProjectCardHero({ project, onEdit, onDelete, onGalleryOpen }: Pr
               Live <ExternalLink size={14} />
             </a>
           )}
-          {project.github_url && !project.demo_url && (
-             <a
-             href={project.github_url}
-             target="_blank"
-             rel="noopener noreferrer"
-             className="flex-1 flex justify-center items-center gap-2 py-2.5 rounded-[12px] text-[var(--on-surface)] text-sm font-bold transition-transform active:scale-95"
-             style={{ background: "var(--surface-container-low)" }}
-           >
-             Code <ExternalLink size={14} />
-           </a>
+          {project.github_url && (
+            <a
+              href={project.github_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 flex justify-center items-center gap-2 py-2.5 rounded-[12px] text-[var(--on-surface)] text-sm font-bold transition-transform active:scale-95"
+              style={{ background: "var(--surface-container-low)" }}
+            >
+              GitHub <ExternalLink size={14} />
+            </a>
           )}
           
           <div className="flex gap-1 ml-auto">

@@ -71,11 +71,16 @@ export async function POST(
       .select("skill_id")
       .eq("node_id", params.nodeId);
 
-    const skillIds = (nodeSkills || []).map((entry) => entry.skill_id);
+    const skillIds = Array.from(
+      new Set([
+        ...(nodeSkills || []).map((entry) => entry.skill_id),
+        ...(node.skill_id ? [node.skill_id] : []),
+      ])
+    );
     const xpPerSkill = skillIds.length > 0 ? Math.floor(10 / skillIds.length) : 0;
 
     if (completed && !wasCompleted) {
-      const primarySkillId = nodeSkills?.[0]?.skill_id ?? null;
+      const primarySkillId = skillIds[0] ?? null;
       await supabase.from("xp_logs").insert(
         {
           user_id: user.id,

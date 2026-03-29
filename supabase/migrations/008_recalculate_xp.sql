@@ -27,7 +27,7 @@ begin
     count(ll.id) * 10 as xp,
     floor((count(ll.id) * 10) / 100) as level
   from learning_logs ll
-  join learning_log_skills lls on lls.log_id = ll.id
+  join learning_log_skills lls on lls.learning_log_id = ll.id
   where ll.user_id = p_user_id
   group by lls.skill_id
   on conflict (user_id, skill_id)
@@ -55,15 +55,22 @@ begin
   insert into user_skills (user_id, skill_id, xp, level)
   select
     p_user_id,
-    rns.skill_id,
-    count(urs.node_id) * 10 as xp,
-    floor((count(urs.node_id) * 10) / 100) as level
+    node_skill_map.skill_id,
+    count(distinct urs.node_id) * 10 as xp,
+    floor((count(distinct urs.node_id) * 10) / 100) as level
   from user_roadmap_node_state urs
   join roadmap_nodes rn on rn.id = urs.node_id
-  join roadmap_node_skills rns on rns.node_id = rn.id
+  join (
+    select rns.node_id, rns.skill_id
+    from roadmap_node_skills rns
+    union
+    select rn2.id as node_id, rn2.skill_id
+    from roadmap_nodes rn2
+    where rn2.skill_id is not null
+  ) as node_skill_map on node_skill_map.node_id = rn.id
   where urs.user_id = p_user_id
     and urs.completed = true
-  group by rns.skill_id
+  group by node_skill_map.skill_id
   on conflict (user_id, skill_id)
   do update set xp = user_skills.xp + excluded.xp, level = floor((user_skills.xp + excluded.xp) / 100);
 

@@ -297,8 +297,16 @@ begin
 
   select count(*), min(skill_id)
   into v_skill_count, v_primary_skill_id
-  from public.roadmap_node_skills
-  where node_id = p_node_id;
+  from (
+    select skill_id
+    from public.roadmap_node_skills
+    where node_id = p_node_id
+    union
+    select skill_id
+    from public.roadmap_nodes
+    where id = p_node_id
+      and skill_id is not null
+  ) as node_skill_set;
 
   if v_skill_count > 0 then
     v_xp_per_skill := floor(v_total_xp / v_skill_count);
@@ -310,8 +318,16 @@ begin
   if v_skill_count > 0 then
     for v_skill_id in
       select skill_id
-      from public.roadmap_node_skills
-      where node_id = p_node_id
+      from (
+        select skill_id
+        from public.roadmap_node_skills
+        where node_id = p_node_id
+        union
+        select skill_id
+        from public.roadmap_nodes
+        where id = p_node_id
+          and skill_id is not null
+      ) as node_skill_set
     loop
       perform public.upsert_user_skill_xp(p_user_id, v_skill_id, v_xp_per_skill);
     end loop;

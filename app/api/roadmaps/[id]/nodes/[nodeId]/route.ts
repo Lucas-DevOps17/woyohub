@@ -76,6 +76,15 @@ export async function PATCH(
   let skillIds: string[] = [];
   if (Array.isArray(body.skills)) {
     skillIds = body.skills.filter((id) => typeof id === "string" && id.length > 0);
+    const { data: ownedSkills } = skillIds.length
+      ? await supabase
+          .from("skills")
+          .select("id")
+          .eq("user_id", user.id)
+          .in("id", skillIds)
+      : { data: [] as { id: string }[] };
+    const ownedSkillIds = new Set((ownedSkills || []).map((skill) => skill.id));
+    skillIds = skillIds.filter((skillId) => ownedSkillIds.has(skillId));
   }
 
   // Handle new skill creation
@@ -83,6 +92,7 @@ export async function PATCH(
     const { data: insertedSkill, error: skillInsertError } = await supabase
       .from("skills")
       .insert({
+        user_id: user.id,
         name: body.new_skill_name.trim(),
         icon: typeof body.new_skill_icon === "string" ? body.new_skill_icon.trim() || null : null,
         category: "Custom",

@@ -41,6 +41,15 @@ export async function POST(
   const selectedSkillIds = Array.isArray(body.skills)
     ? body.skills.filter((skillId): skillId is string => typeof skillId === "string" && skillId.length > 0)
     : [];
+  const { data: ownedSkills } = selectedSkillIds.length
+    ? await supabase
+        .from("skills")
+        .select("id")
+        .eq("user_id", user.id)
+        .in("id", selectedSkillIds)
+    : { data: [] as { id: string }[] };
+  const ownedSkillIds = new Set((ownedSkills || []).map((skill) => skill.id));
+  const safeSkillIds = selectedSkillIds.filter((skillId) => ownedSkillIds.has(skillId));
   const x = typeof body.x === "number" && Number.isFinite(body.x) ? body.x : 0;
   const y = typeof body.y === "number" && Number.isFinite(body.y) ? body.y : 0;
 
@@ -50,7 +59,7 @@ export async function POST(
       roadmap_id: params.id,
       title,
       description,
-      skill_id: selectedSkillIds[0] ?? null,
+      skill_id: safeSkillIds[0] ?? null,
       x,
       y,
     })
@@ -61,12 +70,13 @@ export async function POST(
     return NextResponse.json({ error: error?.message ?? "Failed to create node" }, { status: 400 });
   }
 
-  const skillIds = [...selectedSkillIds];
+  const skillIds = [...safeSkillIds];
 
   if (typeof body.new_skill_name === "string" && body.new_skill_name.trim()) {
     const { data: createdSkill } = await supabase
       .from("skills")
       .insert({
+        user_id: user.id,
         name: body.new_skill_name.trim(),
         icon: typeof body.new_skill_icon === "string" ? body.new_skill_icon.trim() || null : null,
         category: "custom",

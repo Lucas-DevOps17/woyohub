@@ -22,8 +22,23 @@ function NewCourseForm() {
   const supabase = createClient();
 
   useEffect(() => {
-    supabase.from("skills").select("*").order("category").then(({ data }) => { if (data) setSkills(data); });
-  }, []);
+    async function loadSkills() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data } = await supabase
+        .from("skills")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("category");
+
+      if (data) setSkills(data);
+    }
+
+    loadSkills();
+  }, [supabase]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

@@ -20,6 +20,17 @@ export async function GET(
 
   const roadmapId = params.id;
 
+  const { data: roadmap } = await supabase
+    .from("roadmaps")
+    .select("id")
+    .eq("id", roadmapId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (!roadmap) {
+    return NextResponse.json({ error: "Roadmap not found" }, { status: 404 });
+  }
+
   const { data: nodesRaw } = await supabase
     .from("roadmap_nodes")
     .select("id, title, description, skill_id, x, y, skill:skills!roadmap_nodes_skill_id_fkey(name, icon), node_skills:roadmap_node_skills(skill_id, skill:skills(name, icon))")

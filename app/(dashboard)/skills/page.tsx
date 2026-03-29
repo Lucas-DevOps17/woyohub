@@ -59,6 +59,7 @@ export default function SkillsPage() {
       supabase
         .from("skills")
         .select("id, name, category, icon, description, user_id")
+        .eq("user_id", user.id)
         .order("category")
         .order("name"),
       supabase.from("user_skills").select("skill_id, xp, level").eq("user_id", user.id),
@@ -176,7 +177,7 @@ export default function SkillsPage() {
               Skill Tree
             </h1>
             <p className="mt-2 text-sm" style={{ color: "var(--on-surface-variant)" }}>
-              Manage your private custom skills while keeping built-in skills available for shared learning paths.
+              Manage your private skills and track XP from projects, logs, and roadmap progress.
             </p>
           </div>
           <button
@@ -254,23 +255,21 @@ export default function SkillsPage() {
                   <div>
                     <h3 className="font-display text-lg font-extrabold text-[var(--on-surface)]">{skill.name}</h3>
                     <p className="text-xs" style={{ color: "var(--outline)" }}>
-                      {skill.category} · Level {skill.level} {skill.user_id ? "· Custom" : "· Built-in"}
+                      {skill.category} · Level {skill.level}
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => startEdit(skill)}
-                    disabled={!skill.user_id}
-                    className="hover-scale rounded-full p-2 disabled:cursor-not-allowed disabled:opacity-40"
+                    className="hover-scale rounded-full p-2"
                     style={{ background: "var(--surface-low)", color: "var(--primary)" }}
                   >
                     <Pencil size={15} />
                   </button>
                   <button
                     onClick={() => handleDelete(skill.id)}
-                    disabled={!skill.user_id}
-                    className="hover-scale rounded-full p-2 disabled:cursor-not-allowed disabled:opacity-40"
+                    className="hover-scale rounded-full p-2"
                     style={{ background: "#fef2f2", color: "var(--error)" }}
                   >
                     <Trash2 size={15} />

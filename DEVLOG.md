@@ -578,3 +578,25 @@ This project is developed by multiple AI agents in parallel conversations. Each 
 - `app/(dashboard)/settings/page.tsx`
 - `app/(dashboard)/skills/page.tsx`
 - Lint still reports a `next/image` recommendation in `components/projects/deployment-preview.tsx`.
+
+---
+
+## 2026-03-30 Roadmap and Skill Privacy Tightening (Codex)
+
+### Completed
+
+- Added `supabase/migrations/014_private_roadmaps.sql`.
+- Roadmap visibility is now being tightened so roadmap definitions, roadmap skills, nodes, and edges are owner-scoped instead of behaving like a shared catalog.
+- Updated roadmap pages and roadmap progress/activate flows to load only the signed-in user's roadmaps.
+- Updated roadmap create/update/node flows so only the signed-in user's skill IDs can be attached, and newly created node skills are stored with `user_id`.
+- Updated course/project/learning-log skill pickers and skill creation flows to use only the signed-in user's skills.
+- Updated the skills page to show the signed-in user's private skills only.
+
+### Verification
+
+- `npx.cmd tsc --noEmit` passes.
+- `npm.cmd run lint` passes with warnings only.
+
+### Still Open
+
+- Supabase still needs to apply `014_private_roadmaps.sql` before roadmap reads are fully private at the database policy layer.

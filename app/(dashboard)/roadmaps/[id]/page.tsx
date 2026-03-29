@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { getCachedSkillCatalog } from "@/lib/cache/catalog";
 import { TopBar } from "@/components/layout/top-bar";
 import { calculateLevel } from "@/types";
 import {
@@ -53,6 +52,7 @@ export default async function RoadmapDetailPage({ params }: { params: { id: stri
     .from("roadmaps")
     .select("*")
     .eq("id", params.id)
+    .eq("user_id", user.id)
     .maybeSingle();
 
   if (!roadmap) {
@@ -60,13 +60,12 @@ export default async function RoadmapDetailPage({ params }: { params: { id: stri
   }
 
   const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single();
-  const cachedSkills = await getCachedSkillCatalog();
   const { data: customSkills } = await supabase
     .from("skills")
     .select("id, name, icon, category")
     .eq("user_id", user.id)
     .order("name");
-  const skills = [...cachedSkills, ...(customSkills ?? [])];
+  const skills = customSkills ?? [];
 
   const { data: nodeRows } = await supabase
     .from("roadmap_nodes")

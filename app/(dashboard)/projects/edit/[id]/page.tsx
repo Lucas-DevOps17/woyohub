@@ -32,9 +32,18 @@ function EditProjectForm() {
   const [userId, setUserId] = useState<string>("");
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id || ""));
-    supabase.from("skills").select("*").order("category").then(({ data }) => {
-      if (data) setSkills(data);
+    supabase.auth.getUser().then(async ({ data }) => {
+      const currentUserId = data.user?.id || "";
+      setUserId(currentUserId);
+      if (!currentUserId) return;
+
+      const { data: skillRows } = await supabase
+        .from("skills")
+        .select("*")
+        .eq("user_id", currentUserId)
+        .order("category");
+
+      if (skillRows) setSkills(skillRows);
     });
   }, [supabase]);
 

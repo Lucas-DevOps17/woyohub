@@ -40,7 +40,18 @@ export async function POST(request: Request) {
 
   const description =
     typeof body.description === "string" ? body.description.trim() || null : null;
-  const skills = normalizeSkills(body.skills);
+  let skills = normalizeSkills(body.skills);
+
+  if (skills.length > 0) {
+    const { data: ownedSkills } = await supabase
+      .from("skills")
+      .select("id")
+      .eq("user_id", user.id)
+      .in("id", skills.map((skill) => skill.skill_id));
+
+    const ownedSkillIds = new Set((ownedSkills || []).map((skill) => skill.id));
+    skills = skills.filter((skill) => ownedSkillIds.has(skill.skill_id));
+  }
 
   const { data: roadmap, error: insertError } = await supabase
     .from("roadmaps")

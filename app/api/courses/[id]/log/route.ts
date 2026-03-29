@@ -77,6 +77,7 @@ export async function POST(
     const { data: newSkill, error: skillInsertError } = await supabase
       .from("skills")
       .insert({
+        user_id: user.id,
         name: new_skill_name.trim(),
         icon: new_skill_icon?.trim() || "🔷",
         category: "custom",

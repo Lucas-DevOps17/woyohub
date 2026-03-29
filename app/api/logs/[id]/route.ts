@@ -66,6 +66,7 @@ export async function PUT(
               const { data: existingSkill } = await supabase
                 .from("skills")
                 .select("id")
+                .eq("user_id", user.id)
                 .ilike("name", skillName.trim())
                 .maybeSingle();
 
@@ -73,7 +74,7 @@ export async function PUT(
 
               const { data: newSkill } = await supabase
                 .from("skills")
-                .insert({ name: skillName.trim(), category: "custom", icon: null })
+                .insert({ user_id: user.id, name: skillName.trim(), category: "custom", icon: null })
                 .select("id")
                 .single();
 
@@ -88,6 +89,7 @@ export async function PUT(
         const { data: createdSkill, error: skillCreateError } = await supabase
           .from("skills")
           .insert({
+            user_id: user.id,
             name: new_skill_name.trim(),
             icon: typeof new_skill_icon === "string" ? new_skill_icon.trim() || null : null,
             category: "custom",

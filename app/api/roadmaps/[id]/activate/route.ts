@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 /**
- * Set this roadmap as the user's only active enrollment (templates or own roadmaps).
+ * Set this roadmap as the user's only active enrollment.
  */
 export async function POST(
   _request: Request,
@@ -23,14 +23,11 @@ export async function POST(
     .from("roadmaps")
     .select("id, user_id")
     .eq("id", roadmapId)
+    .eq("user_id", user.id)
     .maybeSingle();
 
   if (roadmapError || !roadmap) {
     return NextResponse.json({ error: "Roadmap not found" }, { status: 404 });
-  }
-
-  if (roadmap.user_id !== null && roadmap.user_id !== user.id) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const { error: deactivateError } = await supabase

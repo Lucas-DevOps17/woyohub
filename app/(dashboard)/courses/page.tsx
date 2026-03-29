@@ -90,7 +90,7 @@ export default function CoursesPage() {
         )
         .eq("user_id", user.id)
         .order("created_at", { ascending: false }),
-      supabase.from("skills").select("id, name, icon").order("name"),
+      supabase.from("skills").select("id, name, icon").eq("user_id", user.id).order("name"),
     ]);
 
     setProfile(profileRes.data);

@@ -46,6 +46,8 @@ export type Roadmap = {
   difficulty: "beginner" | "intermediate" | "advanced";
   estimated_hours: number | null;
   created_at: string;
+  /** null = template/seed; set for user-created roadmaps */
+  user_id: string | null;
 };
 
 export type RoadmapSkill = {
@@ -64,6 +66,7 @@ export type UserRoadmap = {
   roadmap_id: string;
   started_at: string;
   completed_at: string | null;
+  is_active: boolean;
   // Joined
   roadmap?: Roadmap;
 };

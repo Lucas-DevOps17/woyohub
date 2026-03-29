@@ -27,7 +27,7 @@ async function getData() {
     supabase.from("user_skills").select("*, skill:skills(name, icon, category)").eq("user_id", user.id).order("xp", { ascending: false }).limit(3),
     supabase.from("user_achievements").select("*, achievement:achievements(title, description, icon)").eq("user_id", user.id).order("unlocked_at", { ascending: false }).limit(3),
     supabase.from("xp_logs").select("*").eq("user_id", user.id).gte("created_at", todayStr).order("created_at", { ascending: false }),
-    supabase.from("user_roadmaps").select("*, roadmap:roadmaps(title, icon, difficulty)").eq("user_id", user.id).is("completed_at", null).limit(1),
+    supabase.from("user_roadmaps").select("*, roadmap:roadmaps(title, icon, difficulty)").eq("user_id", user.id).eq("is_active", true).limit(1),
     supabase.from("xp_logs").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(10),
   ]);
 

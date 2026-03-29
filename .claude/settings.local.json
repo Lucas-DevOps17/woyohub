@@ -3,7 +3,8 @@
     "allow": [
       "Bash(npm run:*)",
       "Bash(node node_modules/.bin/next build)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(npx tsc:*)"
     ]
   }
 }

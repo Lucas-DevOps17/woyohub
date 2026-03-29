@@ -76,7 +76,7 @@ export default function CoursesPage() {
     } = await supabase.auth.getUser();
     if (!user) return;
 
-    const [profileRes, coursesRes, logsRes, skillsRes] = await Promise.all([
+    const [profileRes, coursesRes, logsRes, userSkillsRes, customSkillsRes] = await Promise.all([
       supabase.from("profiles").select("*").eq("id", user.id).single(),
       supabase
         .from("courses")
@@ -90,11 +90,39 @@ export default function CoursesPage() {
         )
         .eq("user_id", user.id)
         .order("created_at", { ascending: false }),
+      supabase
+        .from("user_skills")
+        .select("skill_id, skill:skills(id, name, icon)")
+        .eq("user_id", user.id)
+        .order("xp", { ascending: false }),
       supabase.from("skills").select("id, name, icon").eq("user_id", user.id).order("name"),
     ]);
 
     setProfile(profileRes.data);
-    setAllSkills(skillsRes.data || []);
+
+    const skillMap = new Map<string, SkillTag>();
+
+    for (const entry of userSkillsRes.data || []) {
+      const skill = Array.isArray((entry as any).skill) ? (entry as any).skill[0] : (entry as any).skill;
+      if (!skill?.id) continue;
+      skillMap.set(skill.id, {
+        id: skill.id,
+        name: skill.name,
+        icon: skill.icon ?? null,
+      });
+    }
+
+    for (const skill of customSkillsRes.data || []) {
+      if (!skillMap.has(skill.id)) {
+        skillMap.set(skill.id, {
+          id: skill.id,
+          name: skill.name,
+          icon: skill.icon ?? null,
+        });
+      }
+    }
+
+    setAllSkills(Array.from(skillMap.values()).sort((a, b) => a.name.localeCompare(b.name)));
 
     const normalizedCourses = (coursesRes.data || []).map((c: any) => ({
       ...c,

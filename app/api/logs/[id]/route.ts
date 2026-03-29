@@ -16,7 +16,6 @@ export async function PUT(
     const {
       units_completed,
       summary,
-      skills,
       skill_ids = [],
       new_skill_name,
       new_skill_icon,
@@ -46,43 +45,28 @@ export async function PUT(
     if (error) throw error;
 
     // Handle skills (delete existing, insert new ones)
-    if (Array.isArray(skills) || Array.isArray(skill_ids) || typeof new_skill_name === "string") {
+    if (Array.isArray(skill_ids) || typeof new_skill_name === "string") {
       await supabase
         .from("learning_log_skills")
         .delete()
         .eq("learning_log_id", params.id);
 
-      const resolvedSkillIds = new Set<string>(
-        Array.isArray(skill_ids)
-          ? skill_ids.filter((skillId: unknown): skillId is string => typeof skillId === "string" && skillId.length > 0)
-          : []
-      );
+      const resolvedSkillIds = new Set<string>();
 
-      if (Array.isArray(skills)) {
-        const skillMappings = await Promise.all(
-          skills
-            .filter((skillName: unknown): skillName is string => typeof skillName === "string" && skillName.trim().length > 0)
-            .map(async (skillName: string) => {
-              const { data: existingSkill } = await supabase
-                .from("skills")
-                .select("id")
-                .eq("user_id", user.id)
-                .ilike("name", skillName.trim())
-                .maybeSingle();
-
-              if (existingSkill) return existingSkill.id;
-
-              const { data: newSkill } = await supabase
-                .from("skills")
-                .insert({ user_id: user.id, name: skillName.trim(), category: "custom", icon: null })
-                .select("id")
-                .single();
-
-              return newSkill?.id ?? null;
-            })
+      if (Array.isArray(skill_ids) && skill_ids.length > 0) {
+        const safeSkillIds = skill_ids.filter(
+          (skillId: unknown): skillId is string => typeof skillId === "string" && skillId.length > 0
         );
 
-        skillMappings.filter(Boolean).forEach((skillId) => resolvedSkillIds.add(skillId!));
+        if (safeSkillIds.length > 0) {
+          const { data: ownedSkills } = await supabase
+            .from("skills")
+            .select("id")
+            .eq("user_id", user.id)
+            .in("id", safeSkillIds);
+
+          (ownedSkills || []).forEach((skill) => resolvedSkillIds.add(skill.id));
+        }
       }
 
       if (typeof new_skill_name === "string" && new_skill_name.trim()) {

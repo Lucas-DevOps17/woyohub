@@ -187,10 +187,6 @@ export default function CoursesPage() {
         skill_ids: selectedSkills,
         new_skill_name: newSkillName.trim() || undefined,
         new_skill_icon: newSkillIcon.trim() || undefined,
-        // For editing logs, the backend only takes summary/skills/units right now via array mapping if supported,
-        // or just skills array of names for easy mapping, wait, api/logs/[id] takes "skills" array of strings natively.
-        // Let's pass skills as string names or new ids.
-        skills: selectedSkills.map(sid => allSkills.find(s=>s.id === sid)?.name || sid).concat(newSkillName.trim() ? [newSkillName.trim()] : []),
       }),
     });
 

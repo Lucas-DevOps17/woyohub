@@ -70,7 +70,15 @@ export async function POST(
 
   // Clamp units to remaining — never over-complete
   const safeUnits = Math.min(units_completed, remaining);
-  const finalSkillIds = [...skill_ids];
+  const { data: ownedSkills } = skill_ids.length
+    ? await supabase
+        .from("skills")
+        .select("id")
+        .eq("user_id", user.id)
+        .in("id", skill_ids)
+    : { data: [] as { id: string }[] };
+
+  const finalSkillIds = (ownedSkills || []).map((skill) => skill.id);
 
   // Handle optional new skill creation
   if (new_skill_name?.trim()) {

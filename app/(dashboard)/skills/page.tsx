@@ -36,7 +36,7 @@ export default async function SkillsPage() {
           </div>
         ) : (
           <div>
-            <p className="text-sm mb-6" style={{ color: "var(--on-surface-variant)" }}>You haven't leveled up any skills yet. Here are all available skills:</p>
+            <p className="text-sm mb-6" style={{ color: "var(--on-surface-variant)" }}>You haven&apos;t leveled up any skills yet. Here are all available skills:</p>
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-5">
               {available.map((s: any) => (
                 <div key={s.id} className="rounded-3xl p-5 lg:p-7 flex flex-col items-center text-center gap-2.5 opacity-60" style={{ background: "var(--surface-card)" }}>

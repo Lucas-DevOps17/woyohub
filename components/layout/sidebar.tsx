@@ -1,9 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { DarkToggle } from "@/components/ui/theme-provider";
+import { AppLogo } from "@/components/ui/app-logo";
 import {
   LayoutDashboard,
   BookOpen,
@@ -39,12 +41,9 @@ export function Sidebar() {
     <>
       {/* Brand */}
       <div className="px-6 mb-10">
-        <h2 className="font-display text-[22px] font-extrabold text-[var(--on-surface)] tracking-tight">
-          WOYOhub
-        </h2>
-        <p className="text-xs text-[var(--outline)] mt-1 tracking-wide">
-          Intellectual Ascent
-        </p>
+        <Link href="/dashboard" onClick={() => setMobileOpen(false)} className="inline-flex">
+          <AppLogo size={44} showWordmark />
+        </Link>
       </div>
 
       {/* Main nav */}

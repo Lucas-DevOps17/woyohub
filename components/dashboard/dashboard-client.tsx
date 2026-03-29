@@ -2,7 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { GradBar } from "@/components/ui/grad-bar";
-import { getProgressPercentage, formatRelativeTime } from "@/lib/utils";
+import {
+  getProgressPercentage,
+  formatRelativeTime,
+  getRecentDateKeys,
+  getTodayDateKey,
+  shiftDateKey,
+} from "@/lib/utils";
 
 const WEEK = ["M", "T", "W", "T", "F", "S", "S"];
 
@@ -65,34 +71,35 @@ export function DashboardClient({
   userRoadmap,
   recentActivity,
 }: Props) {
-  const [journal, setJournal] = useState("");
   const [roadmapProgress, setRoadmapProgress] = useState<RoadmapProgress | null>(null);
   const [roadmapLoading, setRoadmapLoading] = useState(false);
 
-  // Generate streak visualization based on last activity
   const getStreakDays = () => {
-    const days = [];
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const lastActivity = profile.last_activity_date
-      ? new Date(profile.last_activity_date)
-      : null;
+    const todayKey = getTodayDateKey();
+    const weekKeys = getRecentDateKeys(todayKey, 7);
+    const activeKeys = new Set<string>();
+    const lastActivityKey = profile.last_activity_date || null;
 
-    for (let i = 6; i >= 0; i--) {
-      const date = new Date(today);
-      date.setDate(date.getDate() - i);
+    if (lastActivityKey) {
+      const streakLength = Math.max(0, Number(profile.current_streak) || 0);
+      const streakEndKey = todayXp > 0 ? todayKey : lastActivityKey;
+      const isRecentEnough =
+        streakEndKey === todayKey || streakEndKey === shiftDateKey(todayKey, -1);
 
-      if (i === 0 && todayXp > 0) {
-        days.push(true);
-      } else if (lastActivity) {
-        const diffDays = Math.floor((date.getTime() - lastActivity.getTime()) / (1000 * 60 * 60 * 24));
-        const isActive = diffDays === 0;
-        days.push(isActive);
+      if (isRecentEnough && streakLength > 0) {
+        for (let index = 0; index < streakLength; index++) {
+          activeKeys.add(shiftDateKey(streakEndKey, -index));
+        }
       } else {
-        days.push(false);
+        activeKeys.add(lastActivityKey);
       }
     }
-    return days;
+
+    if (todayXp > 0) {
+      activeKeys.add(todayKey);
+    }
+
+    return weekKeys.map((dateKey) => activeKeys.has(dateKey));
   };
 
   const streakDays = getStreakDays();

@@ -4,6 +4,7 @@ import { useState, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { AppLogo } from "@/components/ui/app-logo";
 
 function LoginForm() {
   const [email, setEmail] = useState("");
@@ -53,9 +54,7 @@ function LoginForm() {
     <div className="space-y-6">
       <div className="text-center">
         <Link href="/" className="inline-flex items-center gap-2">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center btn-primary" style={{ boxShadow: "none" }}>
-            <span className="text-white font-bold">W</span>
-          </div>
+          <AppLogo size={48} />
         </Link>
         <h1 className="mt-4 font-display text-2xl font-extrabold" style={{ color: "var(--on-surface)" }}>
           Welcome back

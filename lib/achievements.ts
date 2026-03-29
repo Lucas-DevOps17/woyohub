@@ -1,12 +1,11 @@
 import { SupabaseClient } from "@supabase/supabase-js";
-import { calculateSkillLevel } from "./progression";
 
 export async function checkAndUnlockAchievements(
   supabase: SupabaseClient,
   userId: string
 ): Promise<{ newUnlocks: any[] }> {
   // 1. Get raw counts and info
-  const [{ data: profile }, { count: coursesEnrolled }, { count: coursesCompleted }, { count: projectsAdded }, { count: projectsCompleted }, { count: logsCount }, { data: logsData }, { count: roadmapsEnrolled }, { count: roadmapsCompleted }, { count: nodesCompleted }, { data: skillsData }, { data: logXpLogs }] = await Promise.all([
+  const [{ data: profile }, { count: coursesEnrolled }, { count: coursesCompleted }, { count: projectsAdded }, { count: projectsCompleted }, { count: logsCount }, { data: logsData }, { count: roadmapsEnrolled }, { count: roadmapsCompleted }, { count: nodesCompleted }, { data: skillsData }] = await Promise.all([
     supabase.from("profiles").select("total_xp, level, current_streak, longest_streak").eq("id", userId).single(),
     supabase.from("courses").select("id", { count: "exact", head: true }).eq("user_id", userId),
     supabase.from("courses").select("id", { count: "exact", head: true }).eq("user_id", userId).eq("status", "completed"),
@@ -17,8 +16,7 @@ export async function checkAndUnlockAchievements(
     supabase.from("user_roadmaps").select("id", { count: "exact", head: true }).eq("user_id", userId),
     supabase.from("user_roadmaps").select("id", { count: "exact", head: true }).eq("user_id", userId).eq("is_active", false), // Simplification: we'll just check roadmaps where the user has 100% completed them or assume this applies. Alternatively, we can check overall completion later.
     supabase.from("user_roadmap_node_state").select("id", { count: "exact", head: true }).eq("user_id", userId).eq("completed", true),
-    supabase.from("user_skills").select("level").eq("user_id", userId),
-    supabase.from("xp_logs").select("created_at").eq("user_id", userId).eq("source_type", "lesson")
+    supabase.from("user_skills").select("level").eq("user_id", userId)
   ]);
 
   if (!profile) return { newUnlocks: [] };
@@ -53,7 +51,7 @@ export async function checkAndUnlockAchievements(
   const { data: unlocked } = await supabase.from("user_achievements").select("achievement_id").eq("user_id", userId);
   const unlockedIds = new Set(unlocked?.map(a => a.achievement_id) || []);
 
-  const newUnlocks: any[] = [];
+  const newUnlockIds: string[] = [];
 
   // 3. Evaluate milestones
   for (const ach of achievements) {
@@ -82,38 +80,22 @@ export async function checkAndUnlockAchievements(
     }
 
     if (fulfills) {
-      newUnlocks.push({ user_id: userId, achievement_id: ach.id });
+      newUnlockIds.push(ach.id);
     }
   }
 
-  // 4. Insert and reward
-  if (newUnlocks.length > 0) {
-    await supabase.from("user_achievements").insert(newUnlocks);
-    
-    let bonusXp = 0;
-    for (const u of newUnlocks) {
-      const ach = achievements.find(a => a.id === u.achievement_id);
-      if (ach && ach.xp_reward > 0) {
-        bonusXp += ach.xp_reward;
-        await supabase.from("xp_logs").insert({
-          user_id: userId,
-          source_type: "achievement",
-          source_id: ach.id,
-          amount: ach.xp_reward,
-        });
-      }
+  if (newUnlockIds.length > 0) {
+    const { data: persistedIds, error } = await supabase.rpc("award_achievements_atomic", {
+      p_user_id: userId,
+      p_achievement_ids: newUnlockIds,
+    });
+
+    if (error) {
+      throw error;
     }
 
-    if (bonusXp > 0) {
-      const { data: p } = await supabase.from("profiles").select("total_xp").eq("id", userId).single();
-      const total = p?.total_xp ?? 0;
-      await supabase.from("profiles").update({
-        total_xp: total + bonusXp,
-        level: Math.floor((total + bonusXp) / 100),
-      }).eq("id", userId);
-    }
-    
-    const unlockedAchievements = achievements.filter(a => newUnlocks.some(u => u.achievement_id === a.id));
+    const insertedIds = new Set((persistedIds as string[] | null) || []);
+    const unlockedAchievements = achievements.filter((a) => insertedIds.has(a.id));
     return { newUnlocks: unlockedAchievements };
   }
 

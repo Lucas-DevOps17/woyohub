@@ -432,3 +432,47 @@ This project is developed by multiple AI agents in parallel conversations. Each 
 - **Dark mode** — Uses `.dark` class + CSS custom properties. Test both modes.
 - **RLS** — The anon key is public by design. Row Level Security policies protect all data.
 - When adding tables, always add RLS policies and update `types/database.ts`.
+
+---
+
+## 2026-03-30 Fix Pass (Codex)
+
+### Completed
+
+- Added `.eslintrc.json` so `npm run lint` now runs a real non-interactive lint pass.
+- Added shared app-timezone helpers in `lib/utils/date.ts`.
+- Defaulted app timezone handling to `Asia/Bangkok`, overridable via `APP_TIME_ZONE` / `NEXT_PUBLIC_APP_TIME_ZONE`.
+- Fixed dashboard "today XP" logic to stop using UTC-midnight math.
+- Fixed the streak tracker so the 7-day strip can represent a consecutive streak instead of only the latest active day.
+- Removed the placeholder "Search knowledge..." bar from the top navigation panel.
+- Replaced manual Manrope font loading in `app/layout.tsx` with `next/font/google`.
+- Refactored `lib/progression.ts` to call atomic RPCs instead of performing fragile multi-step XP writes in app code.
+- Refactored `lib/achievements.ts` so achievement unlock persistence + XP rewards are handled atomically in SQL.
+- Updated `app/api/roadmaps/[id]/nodes/[nodeId]/complete/route.ts` to use atomic completion state handling.
+- Added `supabase/migrations/010_atomic_progression_repairs.sql` with these RPCs:
+- `upsert_user_skill_xp`
+- `award_course_xp_atomic`
+- `award_lesson_xp_atomic`
+- `award_project_xp_atomic`
+- `award_daily_login_xp_atomic`
+- `award_roadmap_node_xp_atomic`
+- `set_roadmap_node_completion_atomic`
+- `award_achievements_atomic`
+
+### Verification
+
+- `npx.cmd tsc --noEmit` passes.
+- `npm.cmd run lint` passes.
+
+### Still Open
+
+- Lint still reports `react-hooks/exhaustive-deps` warnings in:
+- `app/(dashboard)/courses/new/page.tsx`
+- `app/(dashboard)/courses/page.tsx`
+- `app/(dashboard)/courses/[id]/page.tsx`
+- `app/(dashboard)/projects/edit/[id]/page.tsx`
+- `app/(dashboard)/projects/new/page.tsx`
+- `app/(dashboard)/projects/page.tsx`
+- `app/(dashboard)/settings/page.tsx`
+- Lint still reports a `next/image` recommendation in `components/projects/deployment-preview.tsx`.
+- The updated progression code now depends on migration `010_atomic_progression_repairs.sql`; apply that migration before deploying these app changes.

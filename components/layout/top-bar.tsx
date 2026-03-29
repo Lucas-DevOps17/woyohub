@@ -1,7 +1,6 @@
 "use client";
 
 import { DarkToggle } from "@/components/ui/theme-provider";
-import { Search } from "lucide-react";
 
 type TopBarProps = {
   displayName: string;
@@ -13,18 +12,11 @@ type TopBarProps = {
 export function TopBar({ displayName, level, streak, rank = "Scholar" }: TopBarProps) {
   return (
     <div
-      className="sticky top-0 z-20 px-4 lg:px-10 py-3 lg:py-4 flex items-center justify-between glass-bar"
+      className="sticky top-0 z-20 px-4 lg:px-10 py-3 lg:py-4 flex items-center justify-end glass-bar"
       style={{
         background: "color-mix(in srgb, var(--surface) 85%, transparent)",
       }}
     >
-      {/* Left: search (desktop only, placeholder for now) */}
-      <div className="hidden lg:flex items-center gap-2 rounded-[14px] px-5 py-2.5" style={{ background: "var(--surface-low)", width: 320 }}>
-        <Search size={16} color="var(--outline)" />
-        <span className="text-sm" style={{ color: "var(--outline)" }}>Search knowledge...</span>
-      </div>
-      <div className="lg:hidden" />
-
       {/* Right: badges + avatar */}
       <div className="flex items-center gap-3 lg:gap-5">
         {/* Streak badge */}

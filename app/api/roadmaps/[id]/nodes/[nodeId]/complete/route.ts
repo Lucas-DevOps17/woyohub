@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { awardRoadmapNodeCompletionXP } from "@/lib/progression";
+import { setRoadmapNodeCompletionState } from "@/lib/progression";
 
 export async function POST(
   request: Request,
@@ -34,42 +34,16 @@ export async function POST(
 
   const completed = Boolean(body.completed);
 
-  const { data: previous } = await supabase
-    .from("user_roadmap_node_state")
-    .select("completed")
-    .eq("user_id", user.id)
-    .eq("node_id", params.nodeId)
-    .maybeSingle();
-
-  const wasCompleted = previous?.completed ?? false;
-
-  const { error: upsertError } = await supabase.from("user_roadmap_node_state").upsert(
-    {
-      user_id: user.id,
-      node_id: params.nodeId,
-      completed,
-      completed_at: completed ? new Date().toISOString() : null,
-    },
-    { onConflict: "user_id,node_id" }
+  const result = await setRoadmapNodeCompletionState(
+    supabase,
+    user.id,
+    params.nodeId,
+    completed
   );
 
-  if (upsertError) {
-    return NextResponse.json({ error: upsertError.message }, { status: 400 });
+  if (!result.success) {
+    return NextResponse.json({ error: result.error }, { status: 400 });
   }
 
-  let xpAwarded = 0;
-  if (completed && !wasCompleted) {
-    const xpRes = await awardRoadmapNodeCompletionXP(supabase, user.id, params.nodeId);
-    if (xpRes.success && xpRes.xpAwarded) {
-      xpAwarded = xpRes.xpAwarded;
-    }
-  } else if (!completed && wasCompleted) {
-    // If we're unchecking a completed node, recompute the XP source of truth!
-    const { error: rpcError } = await supabase.rpc("recompute_user_xp", { p_user_id: user.id });
-    if (rpcError) {
-      console.error("Failed to recompute XP:", rpcError);
-    }
-  }
-
-  return NextResponse.json({ success: true, xp_awarded: xpAwarded });
+  return NextResponse.json({ success: true, xp_awarded: result.xpAwarded ?? 0 });
 }

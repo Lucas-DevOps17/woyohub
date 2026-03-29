@@ -1,12 +1,11 @@
 import Link from "next/link";
+import { AppLogo } from "@/components/ui/app-logo";
 
 export default function HomePage() {
   return (
     <div className="min-h-screen flex flex-col" style={{ background: "var(--surface)", fontFamily: "'Inter', system-ui, sans-serif" }}>
       <nav className="flex items-center justify-between px-6 py-5 max-w-6xl mx-auto w-full">
-        <div>
-          <span className="font-display text-xl font-extrabold" style={{ color: "var(--on-surface)" }}>WOYOhub</span>
-        </div>
+        <AppLogo size={48} showWordmark />
         <Link
           href="/login"
           className="px-6 py-2.5 rounded-full text-sm font-bold text-white no-underline btn-primary"

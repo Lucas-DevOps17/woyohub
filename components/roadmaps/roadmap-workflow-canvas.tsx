@@ -68,6 +68,7 @@ function WorkflowNodeComponent({
 }: {
   data: WorkflowNode & { isOwner: boolean, onToggleComplete: (nodeId: string, completed: boolean) => void };
 }) {
+  const completeLabel = node.completed ? "Completed" : "Set Complete";
 
   return (
     <>
@@ -87,17 +88,23 @@ function WorkflowNodeComponent({
           border: "2px solid transparent",
         }}
       >
-      <label
-        className="flex items-start gap-2 cursor-pointer"
+      <div
+        className="flex items-start gap-3"
         onClick={(e) => e.stopPropagation()}
         onPointerDown={(e) => e.stopPropagation()}
       >
-        <input
-          type="checkbox"
-          checked={node.completed}
-          onChange={(e) => node.onToggleComplete(node.id, e.target.checked)}
-          className="mt-1 rounded"
-        />
+        <button
+          type="button"
+          onClick={() => node.onToggleComplete(node.id, !node.completed)}
+          className="mt-0.5 shrink-0 px-3 py-1.5 rounded-full text-[10px] font-bold tracking-wide transition-all"
+          style={{
+            background: node.completed ? "var(--tertiary)" : "var(--primary)",
+            color: "#ffffff",
+            opacity: node.isOwner || node.completed ? 1 : 0.92,
+          }}
+        >
+          {completeLabel}
+        </button>
         <span className="flex-1 min-w-0">
           <span className="font-display font-bold text-[var(--on-surface)] text-sm block leading-snug">
             {node.title}
@@ -125,7 +132,7 @@ function WorkflowNodeComponent({
             </span>
           ) : null}
         </span>
-      </label>
+      </div>
       </div>
       <Handle
         type="source"

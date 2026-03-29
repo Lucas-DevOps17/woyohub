@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { awardDailyLoginXP } from "@/lib/progression";
 
+import { checkAndUnlockAchievements } from "@/lib/achievements";
+
 /**
  * Award daily login XP if this is the user's first activity of the day.
  * Call this on dashboard load or after successful login.
@@ -16,12 +18,14 @@ export async function POST() {
 
   try {
     const result = await awardDailyLoginXP(supabase, user.id);
+    const unlockRes = await checkAndUnlockAchievements(supabase, user.id);
 
     if (result.success) {
       return NextResponse.json({
         success: true,
         xpAwarded: result.xpAwarded,
         isStreakDay: result.isStreakDay,
+        unlockedAchievements: unlockRes.newUnlocks,
         message: result.xpAwarded! > 0 ? `Daily login: +${result.xpAwarded} XP!` : "Already logged in today",
       });
     } else {

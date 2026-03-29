@@ -59,7 +59,30 @@ export async function GET(
     const completedCount = nodes.filter((n) => n.completed).length;
     const overallProgress = Math.round((completedCount / nodes.length) * 100);
 
-    const nextIncomplete = nodes.filter((n) => !n.completed).sort((a, b) => a.y - b.y || a.x - b.x)[0];
+    const { data: edges } = await supabase
+      .from("roadmap_edges")
+      .select("source_id, target_id")
+      .eq("roadmap_id", roadmapId);
+
+    // Dependencies mapping
+    const dependencies = new Map<string, string[]>(); // target -> array of sources
+    for (const e of edges ?? []) {
+      if (!dependencies.has(e.target_id)) {
+        dependencies.set(e.target_id, []);
+      }
+      dependencies.get(e.target_id)!.push(e.source_id);
+    }
+
+    // A node is available if it is incomplete AND all its sources are completed
+    const availableNodes = nodes.filter((n) => {
+      if (n.completed) return false;
+      const deps = dependencies.get(n.node_id) || [];
+      return deps.every((depId) => stateMap.get(depId) === true); // completed
+    });
+
+    const nextIncomplete = availableNodes.sort((a, b) => a.y - b.y || a.x - b.x)[0] || 
+                           nodes.filter((n) => !n.completed).sort((a, b) => a.y - b.y || a.x - b.x)[0];
+
 
     return NextResponse.json({
       mode: "graph",

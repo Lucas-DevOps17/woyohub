@@ -51,6 +51,8 @@ type RoadmapProgress = {
   } | null;
 };
 
+import { toast } from "sonner";
+
 export function DashboardClient({
   profile,
   level,
@@ -115,7 +117,15 @@ export function DashboardClient({
       .then((r) => r.json())
       .then((data) => {
         if (data.xpAwarded > 0) {
-          console.log(`Daily login: +${data.xpAwarded} XP!`);
+          toast.success(data.message, { icon: "🔥" });
+        }
+        if (data.unlockedAchievements && data.unlockedAchievements.length > 0) {
+          data.unlockedAchievements.forEach((ach: any) => {
+            toast.success(`Achievement Unlocked: ${ach.title}`, {
+              description: ach.description,
+              icon: ach.icon || "🏆",
+            });
+          });
         }
       })
       .catch(console.error);

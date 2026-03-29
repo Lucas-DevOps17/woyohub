@@ -21,6 +21,8 @@ export const viewport: Viewport = {
   themeColor: "#0049db",
 };
 
+import { Toaster } from "sonner";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -34,7 +36,10 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="min-h-screen font-sans antialiased">{children}</body>
+      <body className="min-h-screen font-sans antialiased">
+        {children}
+        <Toaster position="top-right" richColors theme="light" />
+      </body>
     </html>
   );
 }

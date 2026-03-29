@@ -219,13 +219,13 @@ Canvas-style workflow nodes (roadmap.sh–style layout) with per-user completion
 - [x] Optional implicit Thum.io cover generation
 
 
-### Phase 3B — Gamification & Polish
-- [ ] Streak system (daily tracking, freeze feature)
-- [ ] Achievement auto-unlock on milestones
-- [ ] Level-up animations / notifications
-- [ ] Achievement unlock toast notifications
-- [ ] UI micro-interactions (hover scale 1.02x, press sink 0.98x)
-- [ ] Richer “next step” heuristics (ordering, dependencies)
+### Phase 3B — Gamification & Polish ✅ Complete
+- [x] Streak system (daily tracking, freeze feature)
+- [x] Achievement auto-unlock on milestones (`checkAndUnlockAchievements`)
+- [x] Level-up animations / notifications (`sonner` toaster on dashboard load)
+- [x] Achievement unlock toast notifications
+- [x] UI micro-interactions (hover scale 1.02x, press sink 0.98x) via `globals.css`
+- [x] Richer “next step” heuristics: now uses graph dependencies (`roadmap_edges`) to find available incomplete nodes.
 
 ### Phase 4 — Advanced
 - [ ] Full skill graph visualization (beyond roadmap workflow canvas)

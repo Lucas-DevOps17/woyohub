@@ -321,7 +321,7 @@ export async function awardDailyLoginXP(
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("last_activity_date, current_streak, longest_streak, total_xp")
+    .select("last_activity_date, current_streak, longest_streak, total_xp, streak_freeze_count")
     .eq("id", userId)
     .single();
 
@@ -353,8 +353,20 @@ export async function awardDailyLoginXP(
       newStreak = (profile.current_streak || 0) + 1;
       isNewStreakDay = true;
     } else {
-      // Streak broken, reset to 1
-      newStreak = 1;
+      // Streak broken, check if we can use a freeze
+      const missedDaysTime = Math.max(0, new Date().getTime() - new Date(lastActivity).getTime());
+      const missedDays = Math.floor(missedDaysTime / (1000 * 3600 * 24)) - 1; // 1 missed day = diff is 2
+
+      if (missedDays > 0 && (profile.streak_freeze_count || 0) >= missedDays) {
+        // Auto-consume freez(e)
+        newStreak = (profile.current_streak || 0) + 1;
+        isNewStreakDay = true;
+        // Deduct freezes
+        profile.streak_freeze_count -= missedDays;
+      } else {
+        // Break streak
+        newStreak = 1;
+      }
     }
   }
 
@@ -380,6 +392,7 @@ export async function awardDailyLoginXP(
     current_streak: newStreak,
     longest_streak: longestStreak,
     last_activity_date: today,
+    streak_freeze_count: profile.streak_freeze_count,
   }).eq("id", userId);
 
   if (profileError) {

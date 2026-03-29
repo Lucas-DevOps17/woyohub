@@ -198,7 +198,19 @@ Canvas-style workflow nodes (roadmap.sh–style layout) with per-user completion
 * Checking off a node now distributes +10 XP across all linked skills uniformly, modeled after project completion logic.
 * Deleting a node cascades and drops any incoming/outgoing edges via `ON DELETE CASCADE`.
 
-### Phase 3 — Gamification & Polish
+### Phase 3A — Projects Page Web Preview Card ✅ Complete
+- [x] Project card UI matching Vercel deployment preview style
+- [x] Deployment URL with clickable external link
+- [x] Status badge with colored dot and text
+- [x] Branch and commit message preview
+- [x] User avatar with tooltip
+- [x] Responsive and dark mode support
+
+**Files:**
+- `components/projects/ProjectCard.tsx`
+- `app/(dashboard)/projects/page.tsx`
+
+### Phase 3B — Gamification & Polish
 - [ ] Streak system (daily tracking, freeze feature)
 - [ ] Achievement auto-unlock on milestones
 - [ ] Level-up animations / notifications

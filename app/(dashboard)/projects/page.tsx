@@ -7,6 +7,7 @@ import { calculateLevel, type UserProfile } from "@/types";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { MoreVertical, Edit, Trash2 } from "lucide-react";
+import { ProjectCard, type ProjectDisplay } from "@/components/projects/project-card";
 
 type Project = {
   id: string;
@@ -119,6 +120,46 @@ export default function ProjectsPage() {
             + New Project
           </Link>
         </div>
+
+        {/* --- DUMMY PREVIEW SECTION START --- */}
+        <div className="mb-12">
+          <h2 className="font-display text-xl font-bold text-[var(--on-surface)] mb-4">
+            Deployment Previews (Example)
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6">
+            <ProjectCard
+              project={{
+                id: "dummy-1",
+                title: "WOYOhub Production",
+                description: "The main production deployment of WOYOhub including the full gamified learning engine.",
+                deploymentUrl: "woyohub.vercel.app",
+                status: "Ready",
+                lastUpdated: new Date(Date.now() - 5 * 60000).toISOString(),
+                userAvatarUrl: "https://api.dicebear.com/7.x/notionists/svg?seed=Lucas",
+                userName: "Lucas-DevOps17",
+                sourceBranch: "main",
+                latestCommitMessage: "fix(nodes): auto-track newly created custom skills",
+                skills: ["Next.js", "React Flow", "Tailwind CSS"],
+              }}
+            />
+            <ProjectCard
+              project={{
+                id: "dummy-2",
+                title: "WOYOhub Staging",
+                description: "Experimental staging branch for testing phase 3 gamification features.",
+                deploymentUrl: "woyohub-staging.vercel.app",
+                status: "Building",
+                lastUpdated: new Date(Date.now() - 2 * 60000).toISOString(),
+                userAvatarUrl: "https://api.dicebear.com/7.x/notionists/svg?seed=Builder",
+                userName: "DeployBot",
+                sourceBranch: "feature/gamification",
+                latestCommitMessage: "feat: Level-up animations and streak freeze",
+                skills: ["Framer Motion", "Zustand"],
+              }}
+            />
+          </div>
+        </div>
+        {/* --- DUMMY PREVIEW SECTION END --- */}
 
         {projects.length === 0 ? (
           <div

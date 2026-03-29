@@ -1,130 +1,159 @@
 import React from "react";
-import { ExternalLink, GitBranch } from "lucide-react";
+import { ExternalLink, Code2, PenTool } from "lucide-react";
 
 export type ProjectDisplay = {
   id: string;
   title: string;
   description: string;
-  deploymentUrl: string;
-  status: "Ready" | "Building" | "Error";
-  lastUpdated: string; // ISO date
-  userAvatarUrl: string;
-  userName: string;
-  sourceBranch: string;
-  latestCommitMessage: string;
+  deploymentUrl: string | null;
+  githubUrl: string | null;
+  status: "Planned" | "In Progress" | "Completed";
+  imageUrl: string | null;
+  avatars: string[];
   skills: string[];
 };
 
-function timeAgo(dateString: string) {
-  const diffMs = Date.now() - new Date(dateString).getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  if (diffMins < 60) return `${diffMins}m ago`;
-  const diffHrs = Math.floor(diffMins / 60);
-  if (diffHrs < 24) return `${diffHrs}h ago`;
-  return `${Math.floor(diffHrs / 24)}d ago`;
-}
-
 export function ProjectCard({ project }: { project: ProjectDisplay }) {
-  const statusColors = {
-    Ready: "var(--primary, #006631)", // Using primary/success color
-    Building: "var(--tertiary, #0049DB)",
-    Error: "var(--error, #D93434)",
+  const statusConfig = {
+    "Completed": { text: "var(--primary, #006631)", dot: "var(--primary, #006631)", label: "COMPLETED" },
+    "In Progress": { text: "#b87504", dot: "#eab308", label: "IN PROGRESS" },
+    "Planned": { text: "var(--tertiary, #0049DB)", dot: "var(--tertiary, #0049DB)", label: "PLANNED" },
   };
+
+  const st = statusConfig[project.status] || statusConfig["Planned"];
 
   return (
     <div
-      className="rounded-3xl p-5 lg:p-7 transition-all duration-300 hover:scale-[1.02] flex flex-col group relative"
+      className="rounded-[28px] overflow-hidden flex flex-col transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1 relative group h-full"
       style={{
-        background: "var(--surface-card)",
-        boxShadow: "0 8px 28px rgba(0,73,219,0.06)",
+        background: "var(--surface-card, #f8f9fc)", // very light tint
+        boxShadow: "0 12px 32px rgba(0, 73, 219, 0.04)",
+        border: "1px solid rgba(0,0,0,0.03)"
       }}
     >
-      {/* Header */}
-      <h3 className="font-display text-xl font-extrabold text-[var(--on-surface)] mb-2">
-        {project.title}
-      </h3>
-      <p className="text-sm leading-relaxed mb-6 flex-grow" style={{ color: "var(--on-surface-variant)" }}>
-        {project.description}
-      </p>
-
-      {/* Deployment Preview Block */}
-      <div className="rounded-2xl p-4 flex flex-col gap-4 text-sm" style={{ background: "var(--surface-low)" }}>
-        {/* URL Row */}
-        <div>
-          <span className="text-xs font-bold uppercase tracking-wider block mb-1" style={{ color: "var(--outline)" }}>
-            Deployment
-          </span>
-          <a
-            href={`https://${project.deploymentUrl}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1.5 font-medium hover:underline w-fit"
-            style={{ color: "var(--on-surface)" }}
-          >
-            {project.deploymentUrl}
-            <ExternalLink size={14} style={{ color: "var(--outline)" }} />
-          </a>
-        </div>
-
-        {/* Status Row */}
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 font-bold" style={{ color: "var(--on-surface)" }}>
-            <span
-              className="w-2.5 h-2.5 rounded-full"
-              style={{ background: statusColors[project.status] }}
-            />
-            {project.status}
+      {/* Hero Image Area */}
+      <div className="h-[220px] w-full relative shrink-0" style={{ background: "var(--surface-low)" }}>
+        {project.imageUrl ? (
+          <img
+            src={project.imageUrl}
+            alt={project.title}
+            className="w-full h-full object-cover object-top"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center opacity-30">
+             <PenTool size={32} />
           </div>
-          <div className="flex items-center gap-2" style={{ color: "var(--on-surface-variant)" }}>
-            <span>{timeAgo(project.lastUpdated)} by</span>
-            <div className="relative group/avatar cursor-help">
-              <img
-                src={project.userAvatarUrl}
-                alt={project.userName}
-                className="w-5 h-5 rounded-full object-cover border"
-                style={{ borderColor: "var(--surface-high)" }}
-              />
-              {/* Tooltip */}
-              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 text-xs rounded opacity-0 invisible group-hover/avatar:opacity-100 group-hover/avatar:visible transition-all whitespace-nowrap z-10" style={{ background: "var(--on-surface)", color: "var(--surface)" }}>
-                {project.userName}
-              </div>
-            </div>
-          </div>
-        </div>
+        )}
 
-        {/* Source Row */}
-        <div>
-          <span className="text-xs font-bold uppercase tracking-wider block mb-1 mt-1" style={{ color: "var(--outline)" }}>
-            Source
-          </span>
-          <div className="flex items-center gap-2">
-             <GitBranch size={14} style={{ color: "var(--outline)" }} />
-             <span className="font-medium" style={{ color: "var(--on-surface)" }}>{project.sourceBranch}</span>
-             <span className="truncate flex-1 max-w-[200px]" style={{ color: "var(--on-surface-variant)" }}>
-               — {project.latestCommitMessage}
-             </span>
-          </div>
+        {/* Status Pill overlay */}
+        <div 
+          className="absolute top-4 left-4 rounded-full px-3 py-1.5 flex items-center gap-2 shadow-sm font-bold text-[10px] tracking-wider bg-white z-10"
+          style={{ color: st.text }}
+        >
+          <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: st.dot }}></span>
+          {st.label}
         </div>
       </div>
 
-      {/* Tags / Skills */}
-      {project.skills.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 mt-5">
-          {project.skills.map((skill) => (
-            <span
-              key={skill}
-              className="text-[11px] font-semibold px-2.5 py-1 rounded-full border"
-              style={{
-                borderColor: "var(--outline)",
-                color: "var(--outline)",
-                background: "transparent",
-              }}
-            >
-              {skill}
-            </span>
-          ))}
+      {/* Body Content */}
+      <div className="p-6 lg:p-7 flex flex-col grow">
+        <h3 className="font-display text-[22px] font-extrabold text-[var(--on-surface)] leading-tight mb-3">
+          {project.title}
+        </h3>
+        
+        <p className="text-[14px] leading-relaxed mb-6" style={{ color: "var(--on-surface-variant)" }}>
+          {project.description}
+        </p>
+
+        {/* Skills */}
+        {project.skills.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-6">
+            {project.skills.map((skill) => (
+              <span
+                key={skill}
+                className="text-[11px] font-bold px-3 py-1.5 rounded-full"
+                style={{
+                  background: "var(--primary-dim, #e8f0fe)",
+                  color: "var(--primary, #006631)", // Matching standard primary unless explicitly customized to blue
+                }}
+              >
+                {skill}
+              </span>
+            ))}
+          </div>
+        )}
+
+        <div className="flex-grow"></div>
+
+        {/* Footer Area */}
+        <div className="flex items-center justify-between pt-2">
+          {/* Avatar Group */}
+          <div className="flex items-center">
+             {project.avatars.length > 0 ? (
+               <div className="flex -space-x-2">
+                 {project.avatars.slice(0, 2).map((av, idx) => (
+                   <img 
+                     key={idx}
+                     src={av} 
+                     alt="Avatar" 
+                     className="w-8 h-8 rounded-full border-2 border-white object-cover"
+                     style={{ zIndex: 10 - idx }}
+                   />
+                 ))}
+                 {project.avatars.length > 2 && (
+                   <div 
+                     className="w-8 h-8 rounded-full border-2 border-white flex items-center justify-center text-[10px] font-bold z-0"
+                     style={{ background: "var(--surface-low)", color: "var(--on-surface-variant)" }}
+                   >
+                     +{project.avatars.length - 2}
+                   </div>
+                 )}
+               </div>
+             ) : (
+               <div 
+                 className="w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-bold"
+                 style={{ background: "var(--surface-low)", color: "var(--outline)" }}
+               >
+                 ?
+               </div>
+             )}
+          </div>
+
+          {/* Action Links */}
+          <div className="flex items-center gap-3">
+             {project.status === "Planned" ? (
+               <span className="text-[12px] font-bold px-2" style={{ color: "var(--outline)" }}>Drafting</span>
+             ) : (
+               <>
+                 {project.githubUrl && (
+                   <a 
+                     href={project.githubUrl}
+                     target="_blank"
+                     rel="noopener noreferrer"
+                     className="p-1.5 rounded hover:bg-black/5 transition-colors"
+                     style={{ color: "var(--outline)" }}
+                   >
+                     <Code2 size={18} />
+                   </a>
+                 )}
+                 {project.deploymentUrl && (
+                   <a
+                     href={project.deploymentUrl}
+                     target="_blank"
+                     rel="noopener noreferrer"
+                     className="w-8 h-8 rounded-full flex items-center justify-center transition-transform hover:scale-105"
+                     style={{ background: "var(--primary)", color: "white" }}
+                   >
+                     <ExternalLink size={14} />
+                   </a>
+                 )}
+               </>
+             )}
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }
+
+

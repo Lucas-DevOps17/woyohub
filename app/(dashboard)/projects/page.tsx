@@ -123,38 +123,55 @@ export default function ProjectsPage() {
 
         {/* --- DUMMY PREVIEW SECTION START --- */}
         <div className="mb-12">
-          <h2 className="font-display text-xl font-bold text-[var(--on-surface)] mb-4">
-            Deployment Previews (Example)
+          <h2 className="font-display text-[28px] font-extrabold text-[var(--on-surface)] mb-2 leading-none">
+            My Projects
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6">
+          <p className="text-[14px] font-medium mb-8" style={{ color: "var(--outline)" }}>Curating your path to technical mastery.</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <ProjectCard
               project={{
                 id: "dummy-1",
-                title: "WOYOhub Production",
-                description: "The main production deployment of WOYOhub including the full gamified learning engine.",
-                deploymentUrl: "woyohub.vercel.app",
-                status: "Ready",
-                lastUpdated: new Date(Date.now() - 5 * 60000).toISOString(),
-                userAvatarUrl: "https://api.dicebear.com/7.x/notionists/svg?seed=Lucas",
-                userName: "Lucas-DevOps17",
-                sourceBranch: "main",
-                latestCommitMessage: "fix(nodes): auto-track newly created custom skills",
-                skills: ["Next.js", "React Flow", "Tailwind CSS"],
+                title: "Nexus Analytics Engine",
+                description: "Real-time data visualization platform for high-frequency trading metrics with custom shader-based charts.",
+                deploymentUrl: "https://nexus-analytics.example.com",
+                githubUrl: "https://github.com/lucas/nexus",
+                status: "In Progress",
+                imageUrl: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=2070&auto=format&fit=crop",
+                avatars: [
+                  "https://api.dicebear.com/7.x/notionists/svg?seed=Alice",
+                  "https://api.dicebear.com/7.x/notionists/svg?seed=Bob",
+                  "https://api.dicebear.com/7.x/notionists/svg?seed=Charlie",
+                  "https://api.dicebear.com/7.x/notionists/svg?seed=Dave",
+                ],
+                skills: ["React", "Three.js", "WebSockets"],
               }}
             />
             <ProjectCard
               project={{
                 id: "dummy-2",
-                title: "WOYOhub Staging",
-                description: "Experimental staging branch for testing phase 3 gamification features.",
-                deploymentUrl: "woyohub-staging.vercel.app",
-                status: "Building",
-                lastUpdated: new Date(Date.now() - 2 * 60000).toISOString(),
-                userAvatarUrl: "https://api.dicebear.com/7.x/notionists/svg?seed=Builder",
-                userName: "DeployBot",
-                sourceBranch: "feature/gamification",
-                latestCommitMessage: "feat: Level-up animations and streak freeze",
-                skills: ["Framer Motion", "Zustand"],
+                title: "Lumina Wellness App",
+                description: "A mobile-first health companion focusing on circadian rhythm optimization and habit formation.",
+                deploymentUrl: "https://lumina.example.com",
+                githubUrl: "https://github.com/lucas/lumina",
+                status: "Completed",
+                imageUrl: "https://images.unsplash.com/photo-1512428559087-560fa5ceab42?q=80&w=2070&auto=format&fit=crop",
+                avatars: [
+                  "https://api.dicebear.com/7.x/notionists/svg?seed=Eve"
+                ],
+                skills: ["React Native", "Supabase"],
+              }}
+            />
+            <ProjectCard
+              project={{
+                id: "dummy-3",
+                title: "Synapse API Mesh",
+                description: "Infrastructure-as-code project to build a resilient, high-throughput API gateway with automated throttling.",
+                deploymentUrl: null,
+                githubUrl: null,
+                status: "Planned",
+                imageUrl: null,
+                avatars: [],
+                skills: ["Go", "Terraform", "Docker"],
               }}
             />
           </div>

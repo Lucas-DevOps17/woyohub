@@ -518,14 +518,20 @@ export default function CoursesPage() {
                           </div>
 
                           {/* Skills */}
-                          {allSkills.length > 0 && (
-                            <div>
+                          <div>
+                            <div className="flex items-center justify-between gap-3 mb-2">
                               <label
-                                className="text-xs font-semibold block mb-2"
+                                className="text-xs font-semibold block"
                                 style={{ color: "var(--on-surface-variant)" }}
                               >
-                                Skills practiced
+                                Choose existing skills
                               </label>
+                              <span className="text-[11px]" style={{ color: "var(--outline)" }}>
+                                {selectedSkills.length} selected
+                              </span>
+                            </div>
+
+                            {allSkills.length > 0 ? (
                               <div className="flex flex-wrap gap-2">
                                 {allSkills.map((skill) => (
                                   <button
@@ -540,14 +546,28 @@ export default function CoursesPage() {
                                       color: selectedSkills.includes(skill.id)
                                         ? "white"
                                         : "var(--outline)",
+                                      border: selectedSkills.includes(skill.id)
+                                        ? "none"
+                                        : "1px solid var(--outline-variant)",
                                     }}
                                   >
                                     {skill.icon} {skill.name}
                                   </button>
                                 ))}
                               </div>
-                            </div>
-                          )}
+                            ) : (
+                              <div
+                                className="rounded-[12px] px-4 py-3 text-sm"
+                                style={{
+                                  background: "var(--surface-card)",
+                                  color: "var(--outline)",
+                                  border: "1px dashed var(--outline-variant)",
+                                }}
+                              >
+                                No saved skills yet. Add a new one below, then it will appear here next time too.
+                              </div>
+                            )}
+                          </div>
 
                           {/* New skill toggle */}
                           <div>

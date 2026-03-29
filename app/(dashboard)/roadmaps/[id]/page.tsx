@@ -2,7 +2,11 @@ import { notFound } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { TopBar } from "@/components/layout/top-bar";
 import { calculateLevel } from "@/types";
-import { RoadmapWorkflowCanvas, type WorkflowNode } from "@/components/roadmaps/roadmap-workflow-canvas";
+import {
+  RoadmapWorkflowCanvas,
+  type WorkflowNode,
+  type WorkflowEdge,
+} from "@/components/roadmaps/roadmap-workflow-canvas";
 
 function normalizeSkillJoin(
   skill: unknown
@@ -44,6 +48,11 @@ export default async function RoadmapDetailPage({ params }: { params: { id: stri
     .order("y", { ascending: true })
     .order("x", { ascending: true });
 
+  const { data: edgeRows } = await supabase
+    .from("roadmap_edges")
+    .select("id, source_node_id, target_node_id")
+    .eq("roadmap_id", params.id);
+
   const ids = (nodeRows ?? []).map((n) => n.id);
   let states: { node_id: string; completed: boolean }[] = [];
   if (ids.length > 0) {
@@ -67,6 +76,12 @@ export default async function RoadmapDetailPage({ params }: { params: { id: stri
     skill: normalizeSkillJoin(n.skill),
   }));
 
+  const initialEdges: WorkflowEdge[] = (edgeRows ?? []).map((e) => ({
+    id: e.id,
+    source_node_id: e.source_node_id,
+    target_node_id: e.target_node_id,
+  }));
+
   const ownerId = (roadmap as { user_id?: string | null }).user_id ?? null;
   const isOwner = ownerId === user.id;
   const level = calculateLevel(profile?.total_xp || 0);
@@ -79,6 +94,7 @@ export default async function RoadmapDetailPage({ params }: { params: { id: stri
         roadmapTitle={roadmap.title}
         isOwner={isOwner}
         initialNodes={initialNodes}
+        initialEdges={initialEdges}
         skills={skills ?? []}
       />
     </>

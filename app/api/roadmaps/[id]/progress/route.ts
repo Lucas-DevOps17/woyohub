@@ -22,7 +22,7 @@ export async function GET(
 
   const { data: nodesRaw } = await supabase
     .from("roadmap_nodes")
-    .select("id, title, description, skill_id, x, y, skill:skills(name, icon)")
+    .select("id, title, description, skill_id, x, y, skill:skills!roadmap_nodes_skill_id_fkey(name, icon), node_skills:roadmap_node_skills(skill_id, skill:skills(name, icon))")
     .eq("roadmap_id", roadmapId)
     .order("y", { ascending: true })
     .order("x", { ascending: true });

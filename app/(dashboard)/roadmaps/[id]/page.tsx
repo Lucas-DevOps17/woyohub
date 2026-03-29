@@ -43,7 +43,7 @@ export default async function RoadmapDetailPage({ params }: { params: { id: stri
 
   const { data: nodeRows } = await supabase
     .from("roadmap_nodes")
-    .select("id, title, description, skill_id, x, y, skill:skills(name, icon)")
+    .select("id, title, description, skill_id, x, y, skill:skills!roadmap_nodes_skill_id_fkey(name, icon), node_skills:roadmap_node_skills(skill_id, skill:skills(name, icon))")
     .eq("roadmap_id", params.id)
     .order("y", { ascending: true })
     .order("x", { ascending: true });
@@ -74,6 +74,7 @@ export default async function RoadmapDetailPage({ params }: { params: { id: stri
     y: n.y,
     completed: stateMap.get(n.id) ?? false,
     skill: normalizeSkillJoin(n.skill),
+    node_skills: (n as any).node_skills,
   }));
 
   const initialEdges: WorkflowEdge[] = (edgeRows ?? []).map((e) => ({

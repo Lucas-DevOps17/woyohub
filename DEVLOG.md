@@ -264,6 +264,7 @@ Canvas-style workflow nodes (roadmap.sh–style layout) with per-user completion
 | 2026-03-29 | *Agent*   | **Phase 2D User roadmaps** — Migration 004 (`user_id`, `is_active`, RLS), roadmap CRUD + activate APIs, dashboard query + roadmaps list/modals. |
 | 2026-03-29 | *Agent*   | **Phase 2E Visual workflow** — Migration 005 (`roadmap_nodes`, `user_roadmap_node_state`, `xp_logs`), node APIs + XP, dual progress mode, canvas page, dashboard + list UX. |
 | 2026-03-29 | *Agent*   | **Phase 2D Node Actions** — `roadmap_node_skills` schema, node edit modal, custom skill linking, XP distribution on node completion, and caching bugfixes on canvas. |
+| 2026-03-29 | *Agent*   | **Bugfix: Canvas Load** — Explicit join for `roadmap_nodes` to fix PostgREST ambiguity (400 Bad Request) causing disappearing nodes on reload. Added "Center canvas" action and multi-skill chip rendering to nodes. |
 
 ---
 

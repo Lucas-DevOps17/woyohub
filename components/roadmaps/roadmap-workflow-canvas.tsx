@@ -18,6 +18,8 @@ import ReactFlow, {
   Edge,
   Handle,
   Position,
+  ReactFlowProvider,
+  useReactFlow,
 } from "reactflow";
 import "reactflow/dist/style.css";
 import type { SkillOption } from "@/components/roadmaps/roadmap-form-modal";
@@ -33,6 +35,7 @@ export type WorkflowNode = {
   y: number;
   completed: boolean;
   skill?: { name: string; icon: string | null } | null;
+  node_skills?: { skill_id: string; skill?: { name: string; icon: string | null } }[];
 };
 
 // NOTE: this is a subset of the full DB type
@@ -85,7 +88,20 @@ function WorkflowNodeComponent({
           <span className="font-display font-bold text-[var(--on-surface)] text-sm block leading-snug">
             {node.title}
           </span>
-          {node.skill?.name ? (
+          {node.node_skills && node.node_skills.length > 0 ? (
+            <div className="flex gap-1 flex-wrap mt-1">
+              {node.node_skills.map((ns, idx) => (
+                <span
+                  key={idx}
+                  className="text-[10px] px-1.5 py-0.5 rounded"
+                  style={{ background: "var(--surface-high)", color: "var(--on-surface-variant)" }}
+                >
+                  {ns.skill?.icon ? `${ns.skill.icon} ` : ""}
+                  {ns.skill?.name}
+                </span>
+              ))}
+            </div>
+          ) : node.skill?.name ? (
             <span
               className="text-[11px] mt-1 block"
               style={{ color: "var(--outline)" }}
@@ -107,7 +123,22 @@ function WorkflowNodeComponent({
   );
 }
 
-export function RoadmapWorkflowCanvas({
+export function RoadmapWorkflowCanvas(props: {
+  roadmapId: string;
+  roadmapTitle: string;
+  isOwner: boolean;
+  initialNodes: WorkflowNode[];
+  initialEdges: WorkflowEdge[];
+  skills: SkillOption[];
+}) {
+  return (
+    <ReactFlowProvider>
+      <RoadmapWorkflowCanvasInner {...props} />
+    </ReactFlowProvider>
+  );
+}
+
+function RoadmapWorkflowCanvasInner({
   roadmapId,
   roadmapTitle,
   isOwner,
@@ -123,6 +154,7 @@ export function RoadmapWorkflowCanvas({
   skills: SkillOption[];
 }) {
   const router = useRouter();
+  const { fitView } = useReactFlow();
 
   const onToggleComplete = async (nodeId: string, completed: boolean) => {
     // Optimistic update
@@ -357,15 +389,25 @@ export function RoadmapWorkflowCanvas({
                 : "Check off steps as you complete them."}
             </p>
           </div>
-          {isOwner ? (
+          <div className="flex gap-2">
             <button
               type="button"
-              onClick={addNode}
-              className="px-6 py-3 rounded-full text-sm font-bold text-white btn-primary shrink-0 self-start"
+              onClick={() => fitView({ duration: 800, padding: 0.2 })}
+              className="px-6 py-3 rounded-full text-sm font-bold text-white shrink-0 self-start btn-secondary"
+              style={{ background: "var(--surface-low)", color: "var(--on-surface)" }}
             >
-              Add node
+              Center canvas
             </button>
-          ) : null}
+            {isOwner ? (
+              <button
+                type="button"
+                onClick={addNode}
+                className="px-6 py-3 rounded-full text-sm font-bold text-white btn-primary shrink-0 self-start"
+              >
+                Add node
+              </button>
+            ) : null}
+          </div>
         </div>
       </div>
 

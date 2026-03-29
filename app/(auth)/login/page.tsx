@@ -19,6 +19,8 @@ function LoginForm() {
   const displayError =
     urlError === "unauthorized"
       ? "You're not allowed to sign in to this service."
+      : urlError === "auth_failed"
+      ? "Authentication failed. Please try again."
       : error;
 
   async function handleLogin(e: React.FormEvent) {
@@ -113,6 +115,13 @@ function LoginForm() {
           {loading ? "Logging in..." : "Log in"}
         </button>
       </form>
+
+      <p className="text-center text-sm" style={{ color: "var(--on-surface-variant)" }}>
+        New here?{" "}
+        <Link href="/signup" className="font-semibold" style={{ color: "var(--primary)" }}>
+          Create an account
+        </Link>
+      </p>
     </div>
   );
 }

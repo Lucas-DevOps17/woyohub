@@ -1,4 +1,5 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { getCachedRoadmapCatalog, getCachedSkillCatalog } from "@/lib/cache/catalog";
 import { TopBar } from "@/components/layout/top-bar";
 import { calculateLevel } from "@/types";
 import { RoadmapsClient } from "@/components/roadmaps/roadmaps-client";
@@ -13,7 +14,7 @@ export default async function RoadmapsPage() {
   }
 
   const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single();
-  const { data: roadmaps } = await supabase.from("roadmaps").select("*").order("title");
+  const roadmaps = await getCachedRoadmapCatalog();
   const { data: userRoadmaps } = await supabase
     .from("user_roadmaps")
     .select("roadmap_id, is_active")
@@ -45,7 +46,13 @@ export default async function RoadmapsPage() {
     });
   }
 
-  const { data: skills } = await supabase.from("skills").select("id, name, icon, category").order("name");
+  const cachedSkills = await getCachedSkillCatalog();
+  const { data: customSkills } = await supabase
+    .from("skills")
+    .select("id, name, icon, category")
+    .eq("user_id", user.id)
+    .order("name");
+  const skills = [...cachedSkills, ...(customSkills ?? [])];
 
   const activeRoadmapId =
     (userRoadmaps ?? []).find((ur: { is_active: boolean }) => ur.is_active)?.roadmap_id ?? null;
@@ -66,7 +73,7 @@ export default async function RoadmapsPage() {
           estimated_hours: r.estimated_hours,
           user_id: (r as { user_id?: string | null }).user_id ?? null,
         }))}
-        skills={skills ?? []}
+        skills={skills}
         skillsByRoadmap={skillsByRoadmap}
         activeRoadmapId={activeRoadmapId}
         enrolledRoadmapIds={enrolledRoadmapIds}

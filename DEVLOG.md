@@ -517,3 +517,64 @@ This project is developed by multiple AI agents in parallel conversations. Each 
 - `app/(dashboard)/skills/page.tsx`
 - Lint still reports a `next/image` recommendation in `components/projects/deployment-preview.tsx`.
 - If the database has not yet applied migrations `010_atomic_progression_repairs.sql` and `011_skills_crud_policies.sql`, the newly repaired server flows will not fully match the app code.
+
+---
+
+## 2026-03-30 Achievement Expansion (Codex)
+
+### Completed
+
+- Added `supabase/migrations/012_expand_achievements_to_2000.sql`.
+- Expanded the achievement catalog from the existing seeded set to exactly `2,000` total achievements.
+- Used a non-destructive expansion strategy so existing `user_achievements` rows are preserved instead of wiping unlocked history.
+- Distributed the new achievements across supported requirement types already handled by `lib/achievements.ts`, including XP, level, streaks, courses, projects, logs, roadmaps, nodes, skills, and special achievements.
+
+### Verification
+
+- The migration includes a guard that aborts if the final total would not equal exactly `2,000`.
+
+### Still Open
+
+- Supabase still needs to apply `012_expand_achievements_to_2000.sql` before the larger catalog appears in the app.
+
+---
+
+## 2026-03-30 Security, Signup, and Calendar Foundation (Codex)
+
+### Completed
+
+- Removed the single-email allowlist lock from auth middleware and OAuth callback handling.
+- Replaced the old `/signup` redirect with a real open signup page supporting email/password signup and Google signup.
+- Added stronger response security headers in middleware, including CSP, `X-Frame-Options`, `X-Content-Type-Options`, and stricter referrer/permissions policies.
+- Added `supabase/migrations/013_security_signup_calendar_foundation.sql`.
+- Private custom skills are now account-owned via `skills.user_id`, instead of all custom skills being shared globally.
+- Updated skill RLS so users can only create, update, and delete their own custom skills, while built-in global skills remain readable.
+- Updated the skills API routes to write custom skills with `user_id = auth.uid()` and to enforce owner-scoped updates/deletes.
+- Updated the skills page so built-in skills are read-only in the UI and only custom skills are editable/deletable.
+- Added per-user `google_calendar_connections` and `study_sessions` tables with RLS.
+- Added `GET /api/integrations/google-calendar/status`.
+- Added `GET/POST /api/study-sessions` and `PUT/DELETE /api/study-sessions/[id]`.
+- Upgraded the settings page from placeholder integrations to a real account settings surface that shows Google Calendar status and lets users create private study sessions.
+- Added `lib/cache/catalog.ts` and moved roadmap/global-skill catalog reads onto cacheable shared fetches so shared catalog data is faster without caching private user data across accounts.
+
+### Verification
+
+- `npx.cmd tsc --noEmit` passes.
+- `npm.cmd run lint` passes with warnings only.
+
+### Still Open
+
+- Supabase still needs to apply `013_security_signup_calendar_foundation.sql` before private custom skills and study sessions are enforced in production.
+- Google Calendar OAuth token exchange and event push/pull are not finished yet. The app now has the DB + API foundation, but it still needs:
+- a real Google OAuth connect route,
+- secure token storage/refresh flow,
+- calendar event sync worker or server actions,
+- UI controls for connect/disconnect/sync now.
+- Lint still reports `react-hooks/exhaustive-deps` warnings in:
+- `app/(dashboard)/courses/new/page.tsx`
+- `app/(dashboard)/courses/page.tsx`
+- `app/(dashboard)/courses/[id]/page.tsx`
+- `app/(dashboard)/projects/page.tsx`
+- `app/(dashboard)/settings/page.tsx`
+- `app/(dashboard)/skills/page.tsx`
+- Lint still reports a `next/image` recommendation in `components/projects/deployment-preview.tsx`.

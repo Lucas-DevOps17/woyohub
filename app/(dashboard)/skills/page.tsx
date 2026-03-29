@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { TopBar } from "@/components/layout/top-bar";
-import { GradBar } from "@/components/ui/grad-bar";
-import { calculateLevel, type UserProfile } from "@/types";
-import { createClient } from "@/lib/supabase/client";
 import { Pencil, Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
+import { TopBar } from "@/components/layout/top-bar";
+import { GradBar } from "@/components/ui/grad-bar";
+import { createClient } from "@/lib/supabase/client";
+import { calculateLevel, type UserProfile } from "@/types";
 
 type SkillRow = {
   id: string;
@@ -14,6 +14,7 @@ type SkillRow = {
   category: string;
   icon: string | null;
   description: string | null;
+  user_id: string | null;
   xp: number;
   level: number;
 };
@@ -55,7 +56,11 @@ export default function SkillsPage() {
 
     const [profileRes, skillsRes, userSkillsRes] = await Promise.all([
       supabase.from("profiles").select("*").eq("id", user.id).single(),
-      supabase.from("skills").select("*").order("category").order("name"),
+      supabase
+        .from("skills")
+        .select("id, name, category, icon, description, user_id")
+        .order("category")
+        .order("name"),
       supabase.from("user_skills").select("skill_id, xp, level").eq("user_id", user.id),
     ]);
 
@@ -63,7 +68,7 @@ export default function SkillsPage() {
       (userSkillsRes.data || []).map((entry) => [entry.skill_id, { xp: entry.xp, level: entry.level }])
     );
 
-    const merged = (skillsRes.data || []).map((skill) => {
+    const merged: SkillRow[] = (skillsRes.data || []).map((skill) => {
       const progress = progressMap.get(skill.id);
       return {
         ...skill,
@@ -84,6 +89,11 @@ export default function SkillsPage() {
   }
 
   function startEdit(skill: SkillRow) {
+    if (!skill.user_id) {
+      toast.error("Built-in skills are read-only. Create your own custom skill to edit it.");
+      return;
+    }
+
     setEditingSkillId(skill.id);
     setForm({
       name: skill.name,
@@ -130,6 +140,12 @@ export default function SkillsPage() {
   }
 
   async function handleDelete(skillId: string) {
+    const skill = skills.find((entry) => entry.id === skillId);
+    if (skill && !skill.user_id) {
+      toast.error("Built-in skills cannot be deleted.");
+      return;
+    }
+
     if (!confirm("Delete this skill? Linked progress and references may be removed.")) return;
 
     const response = await fetch(`/api/skills/${skillId}`, { method: "DELETE" });
@@ -153,19 +169,19 @@ export default function SkillsPage() {
   return (
     <>
       <TopBar displayName={profile?.display_name || "Learner"} level={level} streak={profile?.current_streak || 0} />
-      <div className="px-4 lg:px-10 py-6 lg:py-9 max-w-[1200px] mx-auto animate-fade-in">
-        <div className="flex justify-between items-center flex-wrap gap-3 mb-6 lg:mb-8">
+      <div className="mx-auto max-w-[1200px] animate-fade-in px-4 py-6 lg:px-10 lg:py-9">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 lg:mb-8">
           <div>
-            <h1 className="font-display text-2xl lg:text-4xl font-extrabold text-[var(--on-surface)]" style={{ letterSpacing: -1 }}>
+            <h1 className="font-display text-2xl font-extrabold text-[var(--on-surface)] lg:text-4xl" style={{ letterSpacing: -1 }}>
               Skill Tree
             </h1>
-            <p className="text-sm mt-2" style={{ color: "var(--on-surface-variant)" }}>
-              Manage your skill library and track XP from projects, logs, and roadmap progress.
+            <p className="mt-2 text-sm" style={{ color: "var(--on-surface-variant)" }}>
+              Manage your private custom skills while keeping built-in skills available for shared learning paths.
             </p>
           </div>
           <button
             onClick={startCreate}
-            className="px-7 py-3 rounded-full text-sm font-bold text-white btn-primary inline-flex items-center gap-2"
+            className="btn-primary inline-flex items-center gap-2 rounded-full px-7 py-3 text-sm font-bold text-white"
           >
             <Plus size={16} />
             New Skill
@@ -173,47 +189,90 @@ export default function SkillsPage() {
         </div>
 
         {showCreate ? (
-          <div className="rounded-3xl p-5 lg:p-7 mb-6" style={{ background: "var(--surface-card)" }}>
-            <div className="flex justify-between items-center mb-4">
+          <div className="mb-6 rounded-3xl p-5 lg:p-7" style={{ background: "var(--surface-card)" }}>
+            <div className="mb-4 flex items-center justify-between">
               <h2 className="font-display text-lg font-bold text-[var(--on-surface)]">
-                {editingSkillId ? "Edit Skill" : "Create Skill"}
+                {editingSkillId ? "Edit Custom Skill" : "Create Custom Skill"}
               </h2>
-              <button onClick={closeForm} className="p-2 rounded-full" style={{ background: "var(--surface-low)", color: "var(--outline)" }}>
+              <button
+                onClick={closeForm}
+                className="rounded-full p-2"
+                style={{ background: "var(--surface-low)", color: "var(--outline)" }}
+              >
                 <X size={16} />
               </button>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-[100px_1fr_1fr] gap-4 mb-4">
-              <input value={form.icon} onChange={(e) => setForm((prev) => ({ ...prev, icon: e.target.value }))} placeholder="Icon" className="px-4 py-3 rounded-[14px] outline-none" style={{ background: "var(--surface-low)", color: "var(--on-surface)" }} />
-              <input value={form.name} onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))} placeholder="Skill name" className="px-4 py-3 rounded-[14px] outline-none" style={{ background: "var(--surface-low)", color: "var(--on-surface)" }} />
-              <input value={form.category} onChange={(e) => setForm((prev) => ({ ...prev, category: e.target.value }))} placeholder="Category" className="px-4 py-3 rounded-[14px] outline-none" style={{ background: "var(--surface-low)", color: "var(--on-surface)" }} />
+            <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-[100px_1fr_1fr]">
+              <input
+                value={form.icon}
+                onChange={(e) => setForm((prev) => ({ ...prev, icon: e.target.value }))}
+                placeholder="Icon"
+                className="rounded-[14px] px-4 py-3 outline-none"
+                style={{ background: "var(--surface-low)", color: "var(--on-surface)" }}
+              />
+              <input
+                value={form.name}
+                onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
+                placeholder="Skill name"
+                className="rounded-[14px] px-4 py-3 outline-none"
+                style={{ background: "var(--surface-low)", color: "var(--on-surface)" }}
+              />
+              <input
+                value={form.category}
+                onChange={(e) => setForm((prev) => ({ ...prev, category: e.target.value }))}
+                placeholder="Category"
+                className="rounded-[14px] px-4 py-3 outline-none"
+                style={{ background: "var(--surface-low)", color: "var(--on-surface)" }}
+              />
             </div>
-            <textarea value={form.description} onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))} placeholder="Optional description" rows={3} className="w-full px-4 py-3 rounded-[14px] outline-none resize-none mb-4" style={{ background: "var(--surface-low)", color: "var(--on-surface)" }} />
-            <button onClick={handleSave} disabled={saving} className="px-6 py-3 rounded-full text-sm font-bold text-white btn-primary disabled:opacity-50">
+            <textarea
+              value={form.description}
+              onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
+              placeholder="Optional description"
+              rows={3}
+              className="mb-4 w-full resize-none rounded-[14px] px-4 py-3 outline-none"
+              style={{ background: "var(--surface-low)", color: "var(--on-surface)" }}
+            />
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="btn-primary rounded-full px-6 py-3 text-sm font-bold text-white disabled:opacity-50"
+            >
               {saving ? "Saving..." : editingSkillId ? "Save Changes" : "Create Skill"}
             </button>
           </div>
         ) : null}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-5">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-5">
           {skills.map((skill) => (
-            <div key={skill.id} className="rounded-3xl p-5 lg:p-7 flex flex-col gap-4" style={{ background: "var(--surface-card)" }}>
-              <div className="flex justify-between items-start gap-3">
+            <div key={skill.id} className="flex flex-col gap-4 rounded-3xl p-5 lg:p-7" style={{ background: "var(--surface-card)" }}>
+              <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-14 h-14 rounded-[18px] flex items-center justify-center text-2xl" style={{ background: "var(--surface-low)" }}>
+                  <div className="flex h-14 w-14 items-center justify-center rounded-[18px] text-2xl" style={{ background: "var(--surface-low)" }}>
                     {skill.icon || "•"}
                   </div>
                   <div>
                     <h3 className="font-display text-lg font-extrabold text-[var(--on-surface)]">{skill.name}</h3>
                     <p className="text-xs" style={{ color: "var(--outline)" }}>
-                      {skill.category} · Level {skill.level}
+                      {skill.category} · Level {skill.level} {skill.user_id ? "· Custom" : "· Built-in"}
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button onClick={() => startEdit(skill)} className="p-2 rounded-full hover-scale" style={{ background: "var(--surface-low)", color: "var(--primary)" }}>
+                  <button
+                    onClick={() => startEdit(skill)}
+                    disabled={!skill.user_id}
+                    className="hover-scale rounded-full p-2 disabled:cursor-not-allowed disabled:opacity-40"
+                    style={{ background: "var(--surface-low)", color: "var(--primary)" }}
+                  >
                     <Pencil size={15} />
                   </button>
-                  <button onClick={() => handleDelete(skill.id)} className="p-2 rounded-full hover-scale" style={{ background: "#fef2f2", color: "var(--error)" }}>
+                  <button
+                    onClick={() => handleDelete(skill.id)}
+                    disabled={!skill.user_id}
+                    className="hover-scale rounded-full p-2 disabled:cursor-not-allowed disabled:opacity-40"
+                    style={{ background: "#fef2f2", color: "var(--error)" }}
+                  >
                     <Trash2 size={15} />
                   </button>
                 </div>
@@ -230,7 +289,7 @@ export default function SkillsPage() {
               )}
 
               <div className="mt-auto">
-                <div className="flex justify-between text-sm font-semibold mb-2">
+                <div className="mb-2 flex justify-between text-sm font-semibold">
                   <span style={{ color: "var(--on-surface)" }}>{skill.xp} XP</span>
                   <span style={{ color: "var(--outline)" }}>{skill.xp % 100}% to next level</span>
                 </div>

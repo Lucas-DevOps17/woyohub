@@ -26,6 +26,7 @@ export async function POST(request: Request) {
     const { data: skill, error } = await supabase
       .from("skills")
       .insert({
+        user_id: user.id,
         name,
         icon,
         category,

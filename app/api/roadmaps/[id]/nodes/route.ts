@@ -53,12 +53,18 @@ export async function POST(
       x,
       y,
     })
-    .select("id")
+    .select("*")
     .single();
 
   if (error || !node) {
     return NextResponse.json({ error: error?.message ?? "Failed to create node" }, { status: 400 });
   }
 
-  return NextResponse.json({ id: node.id });
+  // Include default properties for the new node so ReactFlow renders it correctly.
+  return NextResponse.json({ 
+    ...node, 
+    completed: false, 
+    skill: null,
+    node_skills: []
+  });
 }

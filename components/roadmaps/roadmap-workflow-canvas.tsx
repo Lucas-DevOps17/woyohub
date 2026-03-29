@@ -24,6 +24,7 @@ import ReactFlow, {
 import "reactflow/dist/style.css";
 import type { SkillOption } from "@/components/roadmaps/roadmap-form-modal";
 import { RoadmapNodeEditModal } from "@/components/roadmaps/roadmap-node-edit-modal";
+import { toast } from "sonner";
 
 // NOTE: this is a subset of the full DB type
 export type WorkflowNode = {
@@ -45,8 +46,8 @@ export type WorkflowEdge = {
   target_node_id: string;
 };
 
-const NODE_WIDTH = 220;
-const NODE_HEIGHT = 88;
+const NODE_WIDTH = 260;
+const NODE_HEIGHT = 148;
 
 function normalizeNodePayload(node: any, isOwner: boolean, onToggleComplete: (nodeId: string, completed: boolean) => void) {
   return {
@@ -79,60 +80,109 @@ function WorkflowNodeComponent({
         isConnectable={node.isOwner}
       />
       <div
-        className="w-full h-full rounded-2xl p-4 cursor-pointer select-none relative"
+        className="w-full h-full rounded-[28px] p-0 cursor-pointer select-none relative overflow-hidden"
         style={{
-          background: "var(--surface-card)",
+          background: node.completed
+            ? "linear-gradient(180deg, rgba(0,102,49,0.14) 0%, var(--surface-card) 38%)"
+            : "linear-gradient(180deg, rgba(0,73,219,0.12) 0%, var(--surface-card) 38%)",
           boxShadow: node.completed
-            ? "0 8px 28px rgba(0,102,49,0.12)"
-            : "0 8px 28px rgba(0,73,219,0.06)",
-          border: "2px solid transparent",
+            ? "0 18px 34px rgba(0,102,49,0.16)"
+            : "0 18px 34px rgba(0,73,219,0.10)",
+          border: node.completed
+            ? "1px solid rgba(0,102,49,0.22)"
+            : "1px solid rgba(0,73,219,0.12)",
         }}
       >
-      <div
-        className="flex items-start gap-3"
-        onClick={(e) => e.stopPropagation()}
-        onPointerDown={(e) => e.stopPropagation()}
-      >
-        <button
-          type="button"
-          onClick={() => node.onToggleComplete(node.id, !node.completed)}
-          className="mt-0.5 shrink-0 px-3 py-1.5 rounded-full text-[10px] font-bold tracking-wide transition-all"
-          style={{
-            background: node.completed ? "var(--tertiary)" : "var(--primary)",
-            color: "#ffffff",
-            opacity: node.isOwner || node.completed ? 1 : 0.92,
-          }}
+        <div
+          className="h-full flex flex-col"
+          onClick={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
         >
-          {completeLabel}
-        </button>
-        <span className="flex-1 min-w-0">
-          <span className="font-display font-bold text-[var(--on-surface)] text-sm block leading-snug">
-            {node.title}
-          </span>
-          {node.node_skills && node.node_skills.length > 0 ? (
-            <div className="flex gap-1 flex-wrap mt-1">
-              {node.node_skills.map((ns, idx) => (
+          <div className="px-5 pt-4 pb-3 flex items-start justify-between gap-3">
+            <div>
+              <div
+                className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-bold tracking-[0.18em] uppercase"
+                style={{
+                  background: node.completed ? "rgba(0,102,49,0.14)" : "rgba(0,73,219,0.10)",
+                  color: node.completed ? "var(--tertiary)" : "var(--primary)",
+                }}
+              >
                 <span
-                  key={idx}
-                  className="text-[10px] px-1.5 py-0.5 rounded"
-                  style={{ background: "var(--surface-low)", color: "var(--on-surface-variant)" }}
-                >
-                  {ns.skill?.icon ? `${ns.skill.icon} ` : ""}
-                  {ns.skill?.name}
-                </span>
-              ))}
+                  className="w-2 h-2 rounded-full"
+                  style={{ background: node.completed ? "var(--tertiary)" : "var(--primary)" }}
+                />
+                {node.completed ? "Cleared" : "In Progress"}
+              </div>
             </div>
-          ) : node.skill?.name ? (
-            <span
-              className="text-[11px] mt-1 block"
-              style={{ color: "var(--outline)" }}
+            <button
+              type="button"
+              onClick={() => node.onToggleComplete(node.id, !node.completed)}
+              className="shrink-0 px-3.5 py-2 rounded-full text-[10px] font-bold tracking-wide transition-all"
+              style={{
+                background: node.completed ? "var(--tertiary)" : "var(--primary)",
+                color: "#ffffff",
+              }}
             >
-              {node.skill.icon ? `${node.skill.icon} ` : ""}
-              {node.skill.name}
+              {completeLabel}
+            </button>
+          </div>
+
+          <div className="px-5 pb-5 flex-1 flex flex-col">
+            <span className="font-display font-extrabold text-[15px] block leading-snug text-[var(--on-surface)]">
+              {node.title}
             </span>
-          ) : null}
-        </span>
-      </div>
+            {node.description ? (
+              <p className="text-[12px] leading-relaxed mt-2" style={{ color: "var(--on-surface-variant)" }}>
+                {node.description}
+              </p>
+            ) : (
+              <p className="text-[12px] mt-2" style={{ color: "var(--outline)" }}>
+                Link a skill or add notes for this step.
+              </p>
+            )}
+
+            <div className="mt-4 flex flex-wrap gap-2">
+              {node.node_skills && node.node_skills.length > 0 ? (
+                node.node_skills.map((ns, idx) => (
+                  <span
+                    key={idx}
+                    className="text-[11px] px-2.5 py-1.5 rounded-full"
+                    style={{
+                      background: "var(--surface-low)",
+                      color: "var(--on-surface-variant)",
+                      border: "1px solid rgba(0,73,219,0.08)",
+                    }}
+                  >
+                    {ns.skill?.icon ? `${ns.skill.icon} ` : ""}
+                    {ns.skill?.name || "Linked skill"}
+                  </span>
+                ))
+              ) : node.skill?.name ? (
+                <span
+                  className="text-[11px] px-2.5 py-1.5 rounded-full"
+                  style={{
+                    background: "var(--surface-low)",
+                    color: "var(--on-surface-variant)",
+                    border: "1px solid rgba(0,73,219,0.08)",
+                  }}
+                >
+                  {node.skill.icon ? `${node.skill.icon} ` : ""}
+                  {node.skill.name}
+                </span>
+              ) : (
+                <span
+                  className="text-[11px] px-2.5 py-1.5 rounded-full"
+                  style={{
+                    background: "rgba(0,0,0,0.03)",
+                    color: "var(--outline)",
+                  }}
+                >
+                  No linked skills yet
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
       <Handle
         type="source"
@@ -192,19 +242,23 @@ function RoadmapWorkflowCanvasInner({
     });
 
     if (!res.ok) {
+        const payload = await res.json().catch(() => null);
         // Revert on failure
         setNodes((prev) =>
             prev.map((n) =>
                 n.id === nodeId ? { ...n, data: { ...n.data, completed: !completed } } : n
             )
         );
-        alert("Failed to update completion status");
+        toast.error(payload?.error || "Failed to update completion status");
         return
     }
 
     const j = await res.json();
     if (j.xp_awarded > 0) {
+      toast.success("Roadmap step completed");
       router.refresh();
+    } else if (!completed) {
+      toast.success("Roadmap step reopened");
     }
   }
 

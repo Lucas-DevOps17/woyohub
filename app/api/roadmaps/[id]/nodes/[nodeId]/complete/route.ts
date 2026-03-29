@@ -71,18 +71,65 @@ export async function POST(
       .select("skill_id")
       .eq("node_id", params.nodeId);
 
+    const skillIds = (nodeSkills || []).map((entry) => entry.skill_id);
+    const xpPerSkill = skillIds.length > 0 ? Math.floor(10 / skillIds.length) : 0;
+
     if (completed && !wasCompleted) {
       const primarySkillId = nodeSkills?.[0]?.skill_id ?? null;
-      await supabase.from("xp_logs").upsert(
+      await supabase.from("xp_logs").insert(
         {
           user_id: user.id,
           source_type: "roadmap_node",
           source_id: params.nodeId,
           amount: 10,
           skill_id: primarySkillId,
-        },
-        { onConflict: "id" }
+        }
       );
+
+      for (const skillId of skillIds) {
+        const { data: existingSkill } = await supabase
+          .from("user_skills")
+          .select("xp, level")
+          .eq("user_id", user.id)
+          .eq("skill_id", skillId)
+          .maybeSingle();
+
+        const nextXp = (existingSkill?.xp || 0) + xpPerSkill;
+
+        if (existingSkill) {
+          await supabase
+            .from("user_skills")
+            .update({
+              xp: nextXp,
+              level: Math.floor(nextXp / 100),
+            })
+            .eq("user_id", user.id)
+            .eq("skill_id", skillId);
+        } else {
+          await supabase.from("user_skills").insert({
+            user_id: user.id,
+            skill_id: skillId,
+            xp: xpPerSkill,
+            level: Math.floor(xpPerSkill / 100),
+          });
+        }
+      }
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("total_xp")
+        .eq("id", user.id)
+        .single();
+
+      const totalXp = (profile?.total_xp || 0) + 10;
+      await supabase
+        .from("profiles")
+        .update({
+          total_xp: totalXp,
+          level: Math.floor(totalXp / 100),
+        })
+        .eq("id", user.id);
+
       xpAwarded = 10;
     } else if (!completed && wasCompleted) {
       await supabase
@@ -91,14 +138,43 @@ export async function POST(
         .eq("user_id", user.id)
         .eq("source_type", "roadmap_node")
         .eq("source_id", params.nodeId);
-    }
 
-    const { error: recomputeError } = await supabase.rpc("recompute_user_xp", {
-      p_user_id: user.id,
-    });
+      for (const skillId of skillIds) {
+        const { data: existingSkill } = await supabase
+          .from("user_skills")
+          .select("xp, level")
+          .eq("user_id", user.id)
+          .eq("skill_id", skillId)
+          .maybeSingle();
 
-    if (recomputeError) {
-      return NextResponse.json({ error: recomputeError.message }, { status: 400 });
+        if (!existingSkill) continue;
+
+        const nextXp = Math.max(0, existingSkill.xp - xpPerSkill);
+
+        await supabase
+          .from("user_skills")
+          .update({
+            xp: nextXp,
+            level: Math.floor(nextXp / 100),
+          })
+          .eq("user_id", user.id)
+          .eq("skill_id", skillId);
+      }
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("total_xp")
+        .eq("id", user.id)
+        .single();
+
+      const totalXp = Math.max(0, (profile?.total_xp || 0) - 10);
+      await supabase
+        .from("profiles")
+        .update({
+          total_xp: totalXp,
+          level: Math.floor(totalXp / 100),
+        })
+        .eq("id", user.id);
     }
 
     result = { success: true, xpAwarded };

@@ -46,10 +46,12 @@ export async function PUT(
 
     // Handle skills (delete existing, insert new ones)
     if (Array.isArray(skill_ids) || typeof new_skill_name === "string") {
-      await supabase
+      const { error: deleteLinksError } = await supabase
         .from("learning_log_skills")
         .delete()
         .eq("learning_log_id", params.id);
+
+      if (deleteLinksError) throw deleteLinksError;
 
       const resolvedSkillIds = new Set<string>();
 
@@ -86,12 +88,14 @@ export async function PUT(
       }
 
       if (resolvedSkillIds.size > 0) {
-        await supabase.from("learning_log_skills").insert(
+        const { error: insertLinksError } = await supabase.from("learning_log_skills").insert(
           Array.from(resolvedSkillIds).map((sid) => ({
             learning_log_id: params.id,
             skill_id: sid,
           }))
         );
+
+        if (insertLinksError) throw insertLinksError;
       }
     }
 

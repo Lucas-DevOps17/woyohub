@@ -136,12 +136,16 @@ export async function POST(
 
   // Link skills to this log
   if (finalSkillIds.length > 0) {
-    await supabase.from("learning_log_skills").insert(
+    const { error: learningLogSkillsError } = await supabase.from("learning_log_skills").insert(
       finalSkillIds.map((skillId) => ({
         learning_log_id: log.id,
         skill_id: skillId,
       }))
     );
+
+    if (learningLogSkillsError) {
+      return NextResponse.json({ error: learningLogSkillsError.message }, { status: 400 });
+    }
   }
 
   // Insert XP log

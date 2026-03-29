@@ -60,6 +60,25 @@ export type RoadmapSkill = {
   skill?: Skill;
 };
 
+export type RoadmapNode = {
+  id: string;
+  roadmap_id: string;
+  title: string;
+  description: string | null;
+  skill_id: string | null;
+  x: number;
+  y: number;
+  created_at: string;
+  skill?: Pick<Skill, "name" | "icon"> | null;
+};
+
+export type UserRoadmapNodeState = {
+  user_id: string;
+  node_id: string;
+  completed: boolean;
+  completed_at: string | null;
+};
+
 export type UserRoadmap = {
   id: string;
   user_id: string;
@@ -122,7 +141,7 @@ export type ProjectSkill = {
 export type XpLog = {
   id: string;
   user_id: string;
-  source_type: "lesson" | "course" | "project" | "daily_login" | "achievement";
+  source_type: "lesson" | "course" | "project" | "daily_login" | "achievement" | "roadmap_node";
   source_id: string | null;
   amount: number;
   skill_id: string | null;
@@ -192,6 +211,7 @@ export const XP_REWARDS = {
   COURSE_COMPLETE: 50,
   PROJECT_COMPLETE: 100,
   DAILY_LOGIN: 5,
+  ROADMAP_NODE_COMPLETE: 10,
 } as const;
 
 // Level formula

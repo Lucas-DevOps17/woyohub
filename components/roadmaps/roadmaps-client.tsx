@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { MoreVertical, Edit, Trash2 } from "lucide-react";
 import { RoadmapFormModal, type RoadmapSkillRow, type SkillOption } from "@/components/roadmaps/roadmap-form-modal";
 
@@ -15,7 +16,7 @@ type RoadmapRow = {
   user_id: string | null;
 };
 
-type ProgressInfo = { progress: number; total_skills: number };
+type ProgressInfo = { progress: number; total_skills: number; mode?: string };
 
 type FormState =
   | { open: false }
@@ -60,10 +61,18 @@ export function RoadmapsClient({
         try {
           const res = await fetch(`/api/roadmaps/${id}/progress`);
           if (!res.ok) return [id, { progress: 0, total_skills: 0 }] as const;
-          const data = (await res.json()) as { progress?: number; total_skills?: number };
+          const data = (await res.json()) as {
+            progress?: number;
+            total_skills?: number;
+            mode?: string;
+          };
           return [
             id,
-            { progress: data.progress ?? 0, total_skills: data.total_skills ?? 0 },
+            {
+              progress: data.progress ?? 0,
+              total_skills: data.total_skills ?? 0,
+              mode: data.mode,
+            },
           ] as const;
         } catch {
           return [id, { progress: 0, total_skills: 0 }] as const;
@@ -170,8 +179,22 @@ export function RoadmapsClient({
             const ctaDisabled = isActive || activatingId === r.id;
             const owner = isOwner(r);
 
+            const isGraph = progressMap[r.id]?.mode === "graph";
+            const countText = isGraph
+              ? `${totalSkills} step${totalSkills === 1 ? "" : "s"}`
+              : `${totalSkills} skill${totalSkills === 1 ? "" : "s"}`;
+
             return (
-              <div key={r.id} className="rounded-3xl overflow-hidden relative" style={{ background: "var(--surface-card)" }}>
+              <div
+                key={r.id}
+                className="rounded-3xl overflow-hidden relative transition-shadow duration-300"
+                style={{
+                  background: "var(--surface-card)",
+                  boxShadow: isActive
+                    ? "0 0 0 2px rgba(98,255,150,0.45), 0 0 28px rgba(0,102,49,0.22), 0 12px 40px rgba(0,102,49,0.08)"
+                    : undefined,
+                }}
+              >
                 <div
                   style={{
                     height: 8,
@@ -244,11 +267,18 @@ export function RoadmapsClient({
                     {r.description || "—"}
                   </p>
                   <div className="flex flex-wrap gap-x-4 gap-y-1 text-[13px] mb-5" style={{ color: "var(--outline)" }}>
-                    <span>{totalSkills} skill{totalSkills === 1 ? "" : "s"}</span>
+                    <span>{countText}</span>
                     <span>{prog}% complete</span>
                     <span>{r.estimated_hours ? `${r.estimated_hours} hours` : "Self-paced"}</span>
                   </div>
-                  <div className="flex justify-end">
+                  <div className="flex justify-end items-center gap-3 flex-wrap">
+                    <Link
+                      href={`/roadmaps/${r.id}`}
+                      className="px-6 py-2.5 rounded-full text-[13px] font-bold"
+                      style={{ background: "var(--surface-low)", color: "var(--on-surface)" }}
+                    >
+                      Open
+                    </Link>
                     <button
                       type="button"
                       disabled={ctaDisabled}

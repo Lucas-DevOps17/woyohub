@@ -132,16 +132,57 @@ Agent 2 connected the dashboard to real Supabase data:
 - Learning log submission → **+10 XP** (profile)
 - Each tagged skill → **+10 XP** (user_skills)
 
+### Phase 2D — User-Created Roadmaps MVP ✅ Complete
+
+Real roadmaps with ownership, skill requirements, and a single active enrollment per user (templates remain seeded and public).
+
+**Schema & RLS** (`supabase/migrations/004_roadmaps_ownership_and_active.sql`):
+- [x] `roadmaps.user_id` — `NULL` for seeded templates; set for user-created roadmaps
+- [x] `user_roadmaps.is_active` — one active roadmap per user (partial unique index); backfill for existing rows
+- [x] RLS — users can insert/update/delete only their own `roadmaps`; `roadmap_skills` writes scoped to roadmap owner
+
+**API routes:**
+- [x] `POST /api/roadmaps` — create roadmap + `roadmap_skills` (deduped skills)
+- [x] `PUT` / `DELETE /api/roadmaps/[id]` — owner-only; junction replace on edit
+- [x] `POST /api/roadmaps/[id]/activate` — deactivate others, then set active enrollment
+
+**App:**
+- [x] `app/(dashboard)/dashboard/page.tsx` — active roadmap query uses `.eq("is_active", true)`
+- [x] `components/roadmaps/roadmap-form-modal.tsx`, `roadmaps-client.tsx` — create/edit modal, list with progress API, owner menu, activate CTAs
+- [x] `types/database.ts` — `Roadmap.user_id`, `UserRoadmap.is_active`
+
+### Phase 2E — Visual Roadmap Workflow ✅ Complete
+
+Canvas-style workflow nodes (roadmap.sh–style layout) with per-user completion; progress API prefers nodes when any exist; legacy `roadmap_skills` path unchanged when a roadmap has no nodes.
+
+**Schema & RLS** (`supabase/migrations/005_roadmap_workflow_nodes.sql`):
+- [x] `roadmap_nodes` — title, description, optional `skill_id`, `x`/`y`, FK to `roadmaps`
+- [x] `user_roadmap_node_state` — `(user_id, node_id)` completion (shared definitions, per-user state)
+- [x] RLS — nodes readable by all authenticated users; mutate nodes only if parent `roadmaps.user_id = auth.uid()`; state rows owner-only
+- [x] `xp_logs.source_type` — extended with `'roadmap_node'`
+
+**Progression & API:**
+- [x] `awardRoadmapNodeCompletionXP` in `lib/progression.ts` — +10 XP, idempotent via `xp_logs`
+- [x] `POST/PATCH/DELETE /api/roadmaps/[id]/nodes/...` — owner CRUD; `POST .../nodes/[nodeId]/complete` — any user toggles completion + optional XP
+
+**Progress & dashboard:**
+- [x] `GET /api/roadmaps/[id]/progress` — **graph** mode: `% = completed / total nodes`, `next_action` by `y` then `x`; **skills** mode unchanged when `nodes` empty
+- [x] `components/dashboard/dashboard-client.tsx` — renders node cards when `mode === "graph"`
+
+**UI:**
+- [x] `app/(dashboard)/roadmaps/[id]/page.tsx` + `components/roadmaps/roadmap-workflow-canvas.tsx` — Framer Motion drag (owners), checkbox completion, add/edit/delete nodes
+- [x] `roadmaps-client.tsx` — **Open** link to detail page; tertiary **glow** on active roadmap card; step count label in graph mode
+
 ### Phase 3 — Gamification & Polish
 - [ ] Streak system (daily tracking, freeze feature)
 - [ ] Achievement auto-unlock on milestones
 - [ ] Level-up animations / notifications
 - [ ] Achievement unlock toast notifications
 - [ ] UI micro-interactions (hover scale 1.02x, press sink 0.98x)
-- [ ] Next recommended action (needs `roadmap_skills` join)
+- [ ] Richer “next step” heuristics (ordering, dependencies)
 
 ### Phase 4 — Advanced
-- [ ] Skill graph visualization (interactive node tree)
+- [ ] Full skill graph visualization (beyond roadmap workflow canvas)
 - [ ] AI-powered roadmap recommendations (Claude API)
 - [ ] Google Calendar integration for study sessions
 - [ ] GitHub integration (auto-detect projects)
@@ -164,10 +205,10 @@ Agent 2 connected the dashboard to real Supabase data:
 | Last activity date      | ✅ "Last activity: X ago"                   |
 | Active courses list     | ✅ Grid with gradient progress bars         |
 | Course progress bars    | ✅ Gradient bars (green=done, blue=active)  |
-| Roadmap from DB         | ✅ Fetches `user_roadmaps`                  |
-| Roadmap % completion    | ✅ Real skill-based calculation             |
+| Roadmap from DB         | ✅ Fetches `user_roadmaps` (`is_active`)    |
+| Roadmap % completion    | ✅ Graph: node completion; else skill levels |
 | Recent activity feed    | ✅ Last 8 XP logs with icons + timestamps   |
-| Next recommended action | ✅ Shows next skill to level up             |
+| Next recommended action | ✅ Next incomplete node or next skill       |
 | Lesson completion       | ✅ Click to complete + XP award             |
 | Daily login XP          | ✅ Auto-award on dashboard load             |
 | Project CRUD            | ✅ Create, edit, delete with skills         |
@@ -195,6 +236,8 @@ Agent 2 connected the dashboard to real Supabase data:
 | 2026-03-29 | *Agent 3* | **Phase 2B Core Logic** — Lesson completion + XP, project CRUD, roadmap % fix, daily login bonus, course detail page, progression library, RPC functions. |
 | 2026-03-29 | `2c509a4` | **Fix Phase 2B build errors** — `total_xp` missing from profile SELECT; `Array.isArray` guard for Supabase skill join in roadmap progress route. |
 | 2026-03-29 | `3c056c1` | **Phase 2C Learning Log System** — Migration 003, `POST /api/courses/[id]/log`, courses page rewrite with inline log form + collapsible log list. |
+| 2026-03-29 | *Agent*   | **Phase 2D User roadmaps** — Migration 004 (`user_id`, `is_active`, RLS), roadmap CRUD + activate APIs, dashboard query + roadmaps list/modals. |
+| 2026-03-29 | *Agent*   | **Phase 2E Visual workflow** — Migration 005 (`roadmap_nodes`, `user_roadmap_node_state`, `xp_logs`), node APIs + XP, dual progress mode, canvas page, dashboard + list UX. |
 
 ---
 
@@ -203,29 +246,32 @@ Agent 2 connected the dashboard to real Supabase data:
 1. **Streak visualization** — The 7-day calendar currently shows only the last activity day. For full streak history, query `xp_logs` grouped by day.
 2. **Environment variables** — Build requires `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` in `.env.local`.
 3. **TypeScript strict mode** — Always type Supabase callback parameters explicitly (e.g., `cookiesToSet`). Always wrap `useSearchParams()` in `<Suspense>`.
-4. **Migration required** — Run `supabase/migrations/002_progression_functions.sql` in Supabase SQL Editor for RPC functions.
+4. **Migrations required** — Apply `001`–`005` in order in Supabase SQL Editor (including `002` for RPC functions, `004`/`005` for roadmaps).
 
 ---
 
 ## Database Schema
 
-14 tables with full Row Level Security:
+Core tables (evolving count) with Row Level Security:
 
 ```
-profiles          — User profiles (extends Supabase auth.users)
-skills            — Skill definitions (seeded with 15 defaults)
-user_skills       — Per-user skill XP and levels
-roadmaps          — Career path definitions (seeded with 4 defaults)
-roadmap_skills    — Skills required per roadmap
-user_roadmaps     — User's active roadmaps
-courses           — User's tracked courses
-lessons           — Individual lessons within courses
-projects          — User's project portfolio
-project_skills    — Skills used per project
-xp_logs           — XP transaction history
-achievements      — Achievement definitions (seeded with 12 defaults)
-user_achievements — Unlocked achievements per user
-learning_logs     — Daily learning journal entries
+profiles                  — User profiles (extends Supabase auth.users)
+skills                    — Skill definitions (seeded defaults)
+user_skills               — Per-user skill XP and levels
+roadmaps                  — Career paths (templates: user_id NULL; user-owned: user_id set)
+roadmap_skills            — Skills required per roadmap (+ required_level)
+roadmap_nodes             — Workflow canvas nodes (title, skill link, x/y) — Phase 2E
+user_roadmap_node_state     — Per-user node completion — Phase 2E
+user_roadmaps             — User enrollments; is_active marks dashboard roadmap
+courses                   — User's tracked courses
+lessons                   — Individual lessons within courses
+projects                  — User's project portfolio
+project_skills            — Skills used per project
+xp_logs                   — XP history (source_type includes roadmap_node)
+achievements              — Achievement definitions
+user_achievements         — Unlocked achievements per user
+learning_logs             — Learning journal entries
+learning_log_skills       — Skills tagged on a log entry (migration 003)
 ```
 
 ---
@@ -243,7 +289,7 @@ woyohub/
 │   │   ├── dashboard/          # Level hero, roadmap, momentum, courses, activity, skills, achievements
 │   │   ├── courses/            # Course library + add new course form
 │   │   ├── skills/             # Skill tree grid
-│   │   ├── roadmaps/           # Career roadmap cards
+│   │   ├── roadmaps/           # Roadmap list + [id] workflow canvas
 │   │   ├── projects/           # Project portfolio grid
 │   │   ├── achievements/       # Unlocked vs locked achievements
 │   │   ├── settings/           # Profile, appearance, integrations, danger zone
@@ -254,6 +300,7 @@ woyohub/
 ├── components/
 │   ├── dashboard/
 │   │   └── dashboard-client.tsx  # Interactive dashboard with real Supabase data
+│   ├── roadmaps/                 # Roadmap form modal, list client, workflow canvas
 │   ├── layout/
 │   │   ├── sidebar.tsx           # Responsive sidebar (6 main + 2 bottom nav)
 │   │   └── top-bar.tsx           # Glassmorphic top bar
@@ -264,7 +311,7 @@ woyohub/
 │   ├── supabase/               # Client, server, middleware helpers
 │   └── utils/                  # cn(), formatDate, formatRelativeTime, getProgressPercentage
 ├── types/                      # TypeScript types + XP constants + level formulas
-├── supabase/migrations/        # SQL schema file
+├── supabase/migrations/        # 001–005 SQL migrations
 ├── DESIGN.md                   # Design system specification
 ├── DEVLOG.md                   # This file
 └── middleware.ts                # Auth + access control middleware
@@ -293,7 +340,7 @@ npm install
 npm run dev                         # http://localhost:3000
 ```
 
-Run `supabase/migrations/001_initial_schema.sql` in Supabase SQL Editor before first use.
+Apply `supabase/migrations/` in numeric order (`001` through `005` as needed) in the Supabase SQL Editor before using roadmaps v2 and workflow features.
 
 ---
 

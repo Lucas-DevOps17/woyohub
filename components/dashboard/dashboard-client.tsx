@@ -20,6 +20,7 @@ type Props = {
 };
 
 type RoadmapProgress = {
+  mode?: "graph" | "skills";
   progress: number;
   total_skills: number;
   completed_skills: number;
@@ -32,8 +33,17 @@ type RoadmapProgress = {
     user_xp: number;
     progress: number;
   }>;
+  nodes?: Array<{
+    node_id: string;
+    title: string;
+    name: string;
+    icon: string;
+    completed: boolean;
+    progress: number;
+  }>;
   next_action: {
-    skill_id: string;
+    node_id?: string;
+    skill_id: string | null;
     name: string;
     icon: string;
     user_level: number;
@@ -163,7 +173,34 @@ export function DashboardClient({
                   {roadmapProgress.progress}% COMPLETE
                 </span>
               </div>
-              {roadmapProgress.skills.length > 0 ? (
+              {roadmapProgress.mode === "graph" && (roadmapProgress.nodes?.length ?? 0) > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
+                  {roadmapProgress.nodes!.slice(0, 6).map((n) => (
+                    <div key={n.node_id} className="rounded-[20px] p-5 lg:p-7" style={{ background: "var(--surface-card)" }}>
+                      <p className="text-[11px] font-bold tracking-[1.5px] uppercase" style={{ color: "var(--outline)" }}>
+                        {n.icon ? `${n.icon} ` : ""}
+                        {n.title}
+                      </p>
+                      {n.name !== n.title ? (
+                        <p className="text-xs mt-1" style={{ color: "var(--outline)" }}>
+                          {n.icon ? `${n.icon} ` : ""}
+                          {n.name}
+                        </p>
+                      ) : null}
+                      <div className="flex items-center gap-2.5 mt-3">
+                        <div className="flex-1">
+                          <GradBar pct={n.progress} h={8} variant={n.completed ? "tertiary" : "primary"} />
+                        </div>
+                        {n.completed ? (
+                          <span className="text-lg" style={{ color: "var(--tertiary)" }}>✓</span>
+                        ) : (
+                          <span className="text-[13px] font-semibold" style={{ color: "var(--outline)" }}>{n.progress}%</span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : roadmapProgress.skills.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
                   {roadmapProgress.skills.slice(0, 6).map((s) => (
                     <div key={s.skill_id} className="rounded-[20px] p-5 lg:p-7" style={{ background: "var(--surface-card)" }}>
@@ -187,12 +224,16 @@ export function DashboardClient({
                   ))}
                 </div>
               ) : (
-                <p className="text-sm" style={{ color: "var(--outline)" }}>No skills defined for this roadmap.</p>
+                <p className="text-sm" style={{ color: "var(--outline)" }}>No skills or workflow nodes on this roadmap yet.</p>
               )}
               {roadmapProgress.next_action && (
                 <div className="mt-4 p-4 rounded-2xl" style={{ background: "var(--primary-dim, #e8f0fe)" }}>
                   <p className="text-xs font-bold" style={{ color: "var(--primary)" }}>
-                    Next: Level up {roadmapProgress.next_action.icon} {roadmapProgress.next_action.name} (Lv.{roadmapProgress.next_action.user_level} → {roadmapProgress.next_action.required_level})
+                    {roadmapProgress.mode === "graph" ? (
+                      <>Next: {roadmapProgress.next_action.icon ? `${roadmapProgress.next_action.icon} ` : null}{roadmapProgress.next_action.name}</>
+                    ) : (
+                      <>Next: Level up {roadmapProgress.next_action.icon} {roadmapProgress.next_action.name} (Lv.{roadmapProgress.next_action.user_level} → {roadmapProgress.next_action.required_level})</>
+                    )}
                   </p>
                 </div>
               )}

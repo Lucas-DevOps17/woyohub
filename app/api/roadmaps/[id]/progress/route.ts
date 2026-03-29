@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 /**
- * Calculate roadmap progress based on skill levels.
- * progress = SUM(LEAST(user_level / required_level, 1)) / COUNT(skills) * 100
+ * Progress: graph mode (roadmap_nodes + user completion) if nodes exist;
+ * else legacy roadmap_skills vs user_skills levels.
  */
 export async function GET(
   request: Request,
@@ -11,14 +11,76 @@ export async function GET(
 ) {
   const supabase = createServerSupabaseClient();
 
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const roadmapId = params.id;
 
-  // Get all skills required for this roadmap with their required levels
+  const { data: nodesRaw } = await supabase
+    .from("roadmap_nodes")
+    .select("id, title, description, skill_id, x, y, skill:skills(name, icon)")
+    .eq("roadmap_id", roadmapId)
+    .order("y", { ascending: true })
+    .order("x", { ascending: true });
+
+  const nodesList = nodesRaw ?? [];
+
+  if (nodesList.length > 0) {
+    const nodeIds = nodesList.map((n) => n.id);
+    const { data: states } = await supabase
+      .from("user_roadmap_node_state")
+      .select("node_id, completed")
+      .eq("user_id", user.id)
+      .in("node_id", nodeIds);
+
+    const stateMap = new Map((states ?? []).map((s) => [s.node_id, s.completed]));
+
+    const nodes = nodesList.map((n) => {
+      const skillData = Array.isArray(n.skill) ? n.skill[0] : n.skill;
+      const completed = stateMap.get(n.id) ?? false;
+      return {
+        node_id: n.id,
+        title: n.title,
+        description: n.description,
+        skill_id: n.skill_id,
+        name: skillData?.name ?? n.title,
+        icon: skillData?.icon ?? "",
+        x: n.x,
+        y: n.y,
+        completed,
+        progress: completed ? 100 : 0,
+      };
+    });
+
+    const completedCount = nodes.filter((n) => n.completed).length;
+    const overallProgress = Math.round((completedCount / nodes.length) * 100);
+
+    const nextIncomplete = nodes.filter((n) => !n.completed).sort((a, b) => a.y - b.y || a.x - b.x)[0];
+
+    return NextResponse.json({
+      mode: "graph",
+      progress: overallProgress,
+      total_skills: nodes.length,
+      completed_skills: completedCount,
+      nodes,
+      skills: [],
+      next_action: nextIncomplete
+        ? {
+            node_id: nextIncomplete.node_id,
+            skill_id: nextIncomplete.skill_id,
+            name: nextIncomplete.title,
+            icon: nextIncomplete.icon,
+            user_level: nextIncomplete.completed ? 1 : 0,
+            required_level: 1,
+          }
+        : null,
+    });
+  }
+
   const { data: roadmapSkills } = await supabase
     .from("roadmap_skills")
     .select("skill_id, required_level, skill:skills(name, icon)")
@@ -26,10 +88,17 @@ export async function GET(
     .order("order_index");
 
   if (!roadmapSkills || roadmapSkills.length === 0) {
-    return NextResponse.json({ progress: 0, skills: [] });
+    return NextResponse.json({
+      mode: "skills",
+      progress: 0,
+      skills: [],
+      nodes: [],
+      total_skills: 0,
+      completed_skills: 0,
+      next_action: null,
+    });
   }
 
-  // Get user's current levels for these skills
   const skillIds = roadmapSkills.map((rs) => rs.skill_id);
   const { data: userSkills } = await supabase
     .from("user_skills")
@@ -41,7 +110,6 @@ export async function GET(
     (userSkills || []).map((us) => [us.skill_id, { level: us.level, xp: us.xp }])
   );
 
-  // Calculate progress per skill
   let totalProgress = 0;
   const skillProgress = roadmapSkills.map((rs) => {
     const userSkill = userSkillMap.get(rs.skill_id);
@@ -63,16 +131,17 @@ export async function GET(
 
   const overallProgress = Math.round((totalProgress / roadmapSkills.length) * 100);
 
-  // Find next recommended action (skill with lowest progress that's not maxed)
   const nextAction = skillProgress
     .filter((s) => s.progress < 100)
     .sort((a, b) => a.progress - b.progress)[0];
 
   return NextResponse.json({
+    mode: "skills",
     progress: overallProgress,
     total_skills: roadmapSkills.length,
     completed_skills: skillProgress.filter((s) => s.progress === 100).length,
     skills: skillProgress,
+    nodes: [],
     next_action: nextAction
       ? {
           skill_id: nextAction.skill_id,

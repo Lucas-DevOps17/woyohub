@@ -11,6 +11,7 @@ export const XP_REWARDS = {
   COURSE_COMPLETE: 50,
   PROJECT_COMPLETE: 100,
   DAILY_LOGIN: 5,
+  ROADMAP_NODE_COMPLETE: 10,
 } as const;
 
 /**
@@ -386,4 +387,94 @@ export async function awardDailyLoginXP(
   }
 
   return { success: true, xpAwarded: xpAmount, isStreakDay: isNewStreakDay };
+}
+
+/**
+ * Award XP when a roadmap workflow node is marked complete (skill-linked).
+ * Idempotent: one log per (user, node_id).
+ */
+export async function awardRoadmapNodeCompletionXP(
+  supabase: SupabaseClient,
+  userId: string,
+  nodeId: string,
+  skillId: string
+): Promise<{ success: boolean; error?: string; xpAwarded?: number }> {
+  const { data: existingLog } = await supabase
+    .from("xp_logs")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("source_type", "roadmap_node")
+    .eq("source_id", nodeId)
+    .maybeSingle();
+
+  if (existingLog) {
+    return { success: false, error: "Roadmap node XP already awarded" };
+  }
+
+  const xpAmount = XP_REWARDS.ROADMAP_NODE_COMPLETE;
+
+  const { error: xpLogError } = await supabase.from("xp_logs").insert({
+    user_id: userId,
+    source_type: "roadmap_node",
+    source_id: nodeId,
+    amount: xpAmount,
+    skill_id: skillId,
+  });
+
+  if (xpLogError) {
+    return { success: false, error: xpLogError.message };
+  }
+
+  const { data: existingSkill } = await supabase
+    .from("user_skills")
+    .select("xp, level")
+    .eq("user_id", userId)
+    .eq("skill_id", skillId)
+    .maybeSingle();
+
+  if (existingSkill) {
+    const newXp = existingSkill.xp + xpAmount;
+    const { error: skillError } = await supabase
+      .from("user_skills")
+      .update({
+        xp: newXp,
+        level: calculateSkillLevel(newXp),
+      })
+      .eq("user_id", userId)
+      .eq("skill_id", skillId);
+
+    if (skillError) {
+      return { success: false, error: skillError.message };
+    }
+  } else {
+    const { error: insertError } = await supabase.from("user_skills").insert({
+      user_id: userId,
+      skill_id: skillId,
+      xp: xpAmount,
+      level: calculateSkillLevel(xpAmount),
+    });
+
+    if (insertError) {
+      return { success: false, error: insertError.message };
+    }
+  }
+
+  const { error: rpcError } = await supabase.rpc("increment_user_xp", {
+    p_user_id: userId,
+    p_xp_amount: xpAmount,
+  });
+
+  if (rpcError) {
+    const { data: profile } = await supabase.from("profiles").select("total_xp").eq("id", userId).single();
+    const total = profile?.total_xp ?? 0;
+    await supabase
+      .from("profiles")
+      .update({
+        total_xp: total + xpAmount,
+        level: Math.floor((total + xpAmount) / 100),
+      })
+      .eq("id", userId);
+  }
+
+  return { success: true, xpAwarded: xpAmount };
 }

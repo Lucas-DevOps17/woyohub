@@ -76,15 +76,15 @@ export async function PATCH(
   let skillIds: string[] = [];
   if (Array.isArray(body.skills)) {
     skillIds = body.skills.filter((id) => typeof id === "string" && id.length > 0);
-    const { data: ownedSkills } = skillIds.length
+    const { data: trackedSkills } = skillIds.length
       ? await supabase
-          .from("skills")
-          .select("id")
+          .from("user_skills")
+          .select("skill_id")
           .eq("user_id", user.id)
-          .in("id", skillIds)
-      : { data: [] as { id: string }[] };
-    const ownedSkillIds = new Set((ownedSkills || []).map((skill) => skill.id));
-    skillIds = skillIds.filter((skillId) => ownedSkillIds.has(skillId));
+          .in("skill_id", skillIds)
+      : { data: [] as { skill_id: string }[] };
+    const trackedSkillIds = new Set((trackedSkills || []).map((skill) => skill.skill_id));
+    skillIds = skillIds.filter((skillId) => trackedSkillIds.has(skillId));
   }
 
   // Handle new skill creation
@@ -107,12 +107,15 @@ export async function PATCH(
       skillIds.push(insertedSkill.id);
       
       // Auto-track the new skill for the user with 0 XP so it immediately appears on their Skills page
-      await supabase.from("user_skills").insert({
-        user_id: user.id,
-        skill_id: insertedSkill.id,
-        xp: 0,
-        level: 0,
-      });
+      await supabase.from("user_skills").upsert(
+        {
+          user_id: user.id,
+          skill_id: insertedSkill.id,
+          xp: 0,
+          level: 0,
+        },
+        { onConflict: "user_id,skill_id" }
+      );
     }
   }
 

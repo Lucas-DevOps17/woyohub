@@ -60,12 +60,39 @@ export default async function RoadmapDetailPage({ params }: { params: { id: stri
   }
 
   const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single();
-  const { data: customSkills } = await supabase
-    .from("skills")
-    .select("id, name, icon, category")
-    .eq("user_id", user.id)
-    .order("name");
-  const skills = customSkills ?? [];
+  const [{ data: userSkillRows }, { data: customSkills }] = await Promise.all([
+    supabase
+      .from("user_skills")
+      .select("skill_id")
+      .eq("user_id", user.id),
+    supabase
+      .from("skills")
+      .select("id, name, icon, category")
+      .eq("user_id", user.id)
+      .order("name"),
+  ]);
+
+  const skillMap = new Map<string, { id: string; name: string; icon: string | null; category: string }>();
+  const trackedSkillIds = (userSkillRows ?? []).map((row) => row.skill_id).filter(Boolean);
+
+  if (trackedSkillIds.length > 0) {
+    const { data: trackedSkills } = await supabase
+      .from("skills")
+      .select("id, name, icon, category")
+      .in("id", trackedSkillIds);
+
+    for (const skill of trackedSkills ?? []) {
+      skillMap.set(skill.id, skill);
+    }
+  }
+
+  for (const skill of customSkills ?? []) {
+    if (!skillMap.has(skill.id)) {
+      skillMap.set(skill.id, skill);
+    }
+  }
+
+  const skills = Array.from(skillMap.values()).sort((a, b) => a.name.localeCompare(b.name));
 
   const { data: nodeRows } = await supabase
     .from("roadmap_nodes")

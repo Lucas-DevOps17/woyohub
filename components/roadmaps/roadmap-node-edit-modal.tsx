@@ -192,6 +192,11 @@ export function RoadmapNodeEditModal({
                 ))}
               </div>
             )}
+            {skills.length === 0 && (
+              <p className="mb-3 text-xs font-medium" style={{ color: "var(--on-surface-variant)" }}>
+                No saved skills yet. Add a new one below, and it will appear here next time too.
+              </p>
+            )}
             
             <div>
               <button

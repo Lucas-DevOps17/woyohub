@@ -54,28 +54,57 @@ export default function SkillsPage() {
 
     if (!user) return;
 
-    const [profileRes, skillsRes, userSkillsRes] = await Promise.all([
+    const [profileRes, userSkillsRes, customSkillsRes] = await Promise.all([
       supabase.from("profiles").select("*").eq("id", user.id).single(),
+      supabase
+        .from("user_skills")
+        .select("skill_id, xp, level, skill:skills(id, name, category, icon, description, user_id)")
+        .eq("user_id", user.id)
+        .order("xp", { ascending: false }),
       supabase
         .from("skills")
         .select("id, name, category, icon, description, user_id")
         .eq("user_id", user.id)
         .order("category")
         .order("name"),
-      supabase.from("user_skills").select("skill_id, xp, level").eq("user_id", user.id),
     ]);
 
-    const progressMap = new Map(
-      (userSkillsRes.data || []).map((entry) => [entry.skill_id, { xp: entry.xp, level: entry.level }])
-    );
+    const mergedMap = new Map<string, SkillRow>();
 
-    const merged: SkillRow[] = (skillsRes.data || []).map((skill) => {
-      const progress = progressMap.get(skill.id);
-      return {
-        ...skill,
-        xp: progress?.xp || 0,
-        level: progress?.level || 0,
-      };
+    for (const entry of userSkillsRes.data || []) {
+      const skill = Array.isArray((entry as any).skill) ? (entry as any).skill[0] : (entry as any).skill;
+      if (!skill?.id) continue;
+
+      mergedMap.set(skill.id, {
+        id: skill.id,
+        name: skill.name,
+        category: skill.category,
+        icon: skill.icon,
+        description: skill.description,
+        user_id: skill.user_id,
+        xp: entry.xp || 0,
+        level: entry.level || 0,
+      });
+    }
+
+    for (const skill of customSkillsRes.data || []) {
+      if (!mergedMap.has(skill.id)) {
+        mergedMap.set(skill.id, {
+          id: skill.id,
+          name: skill.name,
+          category: skill.category,
+          icon: skill.icon,
+          description: skill.description,
+          user_id: skill.user_id,
+          xp: 0,
+          level: 0,
+        });
+      }
+    }
+
+    const merged = Array.from(mergedMap.values()).sort((a, b) => {
+      if (b.xp !== a.xp) return b.xp - a.xp;
+      return a.name.localeCompare(b.name);
     });
 
     setProfile(profileRes.data);

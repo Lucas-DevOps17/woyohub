@@ -214,14 +214,16 @@ export function RoadmapWorkflowCanvas({
   async function addNode() {
     const title = window.prompt("Node title?");
     if (!title?.trim()) return;
-    const offset = nodes.length * 24;
+
+    const yPos = nodes.length > 0 ? Math.max(...nodes.map((n) => n.position.y)) + NODE_HEIGHT + 20 : 100;
+
     const res = await fetch(`/api/roadmaps/${roadmapId}/nodes`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         title: title.trim(),
-        x: 48 + offset,
-        y: 48 + offset,
+        x: 100,
+        y: yPos,
         description: null,
         skill_id: null,
       }),
@@ -231,7 +233,22 @@ export function RoadmapWorkflowCanvas({
       alert(j.error || "Failed to add node");
       return;
     }
-    router.refresh();
+    
+    const newNodeData = await res.json();
+    const newNode = {
+      id: newNodeData.id,
+      position: { x: newNodeData.x, y: newNodeData.y },
+      data: { ...newNodeData, isOwner, onToggleComplete },
+      type: 'workflow',
+      style: {
+        width: NODE_WIDTH,
+        height: NODE_HEIGHT,
+        background: 'transparent',
+        border: 'none',
+      },
+    };
+
+    setNodes((nds) => [...nds, newNode]);
   }
 
   const nodeTypes = useMemo(

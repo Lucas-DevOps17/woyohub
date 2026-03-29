@@ -3,6 +3,8 @@ import { TopBar } from "@/components/layout/top-bar";
 import { GradBar } from "@/components/ui/grad-bar";
 import { calculateLevel } from "@/types";
 
+export const dynamic = "force-dynamic";
+
 export default async function SkillsPage() {
   const supabase = createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();

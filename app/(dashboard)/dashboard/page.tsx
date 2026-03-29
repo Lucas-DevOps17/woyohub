@@ -3,6 +3,8 @@ import { calculateLevel, xpForNextLevel } from "@/types";
 import { TopBar } from "@/components/layout/top-bar";
 import { DashboardClient } from "@/components/dashboard/dashboard-client";
 
+export const dynamic = "force-dynamic";
+
 async function getData() {
   const supabase = createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();

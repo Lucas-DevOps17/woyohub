@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { TopBar } from "@/components/layout/top-bar";
 import { GradBar } from "@/components/ui/grad-bar";
@@ -35,6 +36,7 @@ type Course = {
 
 export default function CoursesPage() {
   const supabase = createClient();
+  const router = useRouter();
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [courses, setCourses] = useState<Course[]>([]);
@@ -123,6 +125,9 @@ export default function CoursesPage() {
     }
     setLogs(grouped);
     setLoading(false);
+    
+    // Bust router cache so navigating away (e.g. to Skills/Dashboard) gets fresh DB data
+    router.refresh();
   }
 
   // --- LOG ACTIONS ---

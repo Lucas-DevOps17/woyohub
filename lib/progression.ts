@@ -396,9 +396,9 @@ export async function awardDailyLoginXP(
 export async function awardRoadmapNodeCompletionXP(
   supabase: SupabaseClient,
   userId: string,
-  nodeId: string,
-  skillId: string
+  nodeId: string
 ): Promise<{ success: boolean; error?: string; xpAwarded?: number }> {
+  // Check if already awarded
   const { data: existingLog } = await supabase
     .from("xp_logs")
     .select("id")
@@ -411,57 +411,71 @@ export async function awardRoadmapNodeCompletionXP(
     return { success: false, error: "Roadmap node XP already awarded" };
   }
 
-  const xpAmount = XP_REWARDS.ROADMAP_NODE_COMPLETE;
+  // Get linked skills from the new junction table
+  const { data: nodeSkills } = await supabase
+    .from("roadmap_node_skills")
+    .select("skill_id")
+    .eq("node_id", nodeId);
 
+  const totalXp = XP_REWARDS.ROADMAP_NODE_COMPLETE;
+  const skillCount = nodeSkills?.length || 1;
+  const xpPerSkill = Math.floor(totalXp / skillCount);
+
+  // Still insert one XP log
   const { error: xpLogError } = await supabase.from("xp_logs").insert({
     user_id: userId,
     source_type: "roadmap_node",
     source_id: nodeId,
-    amount: xpAmount,
-    skill_id: skillId,
+    amount: totalXp,
+    skill_id: nodeSkills?.[0]?.skill_id || null, // Best effort primary skill tracking
   });
 
   if (xpLogError) {
     return { success: false, error: xpLogError.message };
   }
 
-  const { data: existingSkill } = await supabase
-    .from("user_skills")
-    .select("xp, level")
-    .eq("user_id", userId)
-    .eq("skill_id", skillId)
-    .maybeSingle();
-
-  if (existingSkill) {
-    const newXp = existingSkill.xp + xpAmount;
-    const { error: skillError } = await supabase
+  // Distribute XP across all linked skills
+  for (const ns of nodeSkills || []) {
+    const { data: existingSkill } = await supabase
       .from("user_skills")
-      .update({
-        xp: newXp,
-        level: calculateSkillLevel(newXp),
-      })
+      .select("xp, level")
       .eq("user_id", userId)
-      .eq("skill_id", skillId);
+      .eq("skill_id", ns.skill_id)
+      .maybeSingle();
 
-    if (skillError) {
-      return { success: false, error: skillError.message };
-    }
-  } else {
-    const { error: insertError } = await supabase.from("user_skills").insert({
-      user_id: userId,
-      skill_id: skillId,
-      xp: xpAmount,
-      level: calculateSkillLevel(xpAmount),
-    });
+    if (existingSkill) {
+      const newXp = existingSkill.xp + xpPerSkill;
+      const { error: skillError } = await supabase
+        .from("user_skills")
+        .update({
+          xp: newXp,
+          level: calculateSkillLevel(newXp),
+        })
+        .eq("user_id", userId)
+        .eq("skill_id", ns.skill_id);
 
-    if (insertError) {
-      return { success: false, error: insertError.message };
+      if (skillError) {
+        // We log error but don't abort loop
+        console.error("Failed to update skill XP:", skillError);
+      }
+    } else {
+      const { error: insertError } = await supabase.from("user_skills").insert({
+        user_id: userId,
+        skill_id: ns.skill_id,
+        xp: xpPerSkill,
+        level: calculateSkillLevel(xpPerSkill),
+      });
+
+      if (insertError) {
+        console.error("Failed to insert skill XP:", insertError);
+      }
     }
   }
 
+  // Award total to profile
   const { error: rpcError } = await supabase.rpc("increment_user_xp", {
     p_user_id: userId,
-    p_xp_amount: xpAmount,
+    p_xp_amount: totalXp,
   });
 
   if (rpcError) {
@@ -470,11 +484,11 @@ export async function awardRoadmapNodeCompletionXP(
     await supabase
       .from("profiles")
       .update({
-        total_xp: total + xpAmount,
-        level: Math.floor((total + xpAmount) / 100),
+        total_xp: total + totalXp,
+        level: Math.floor((total + totalXp) / 100),
       })
       .eq("id", userId);
   }
 
-  return { success: true, xpAwarded: xpAmount };
+  return { success: true, xpAwarded: totalXp };
 }

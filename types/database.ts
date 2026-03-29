@@ -70,6 +70,14 @@ export type RoadmapNode = {
   y: number;
   created_at: string;
   skill?: Pick<Skill, "name" | "icon"> | null;
+  node_skills?: RoadmapNodeSkill[];
+};
+
+export type RoadmapNodeSkill = {
+  node_id: string;
+  skill_id: string;
+  // Joined
+  skill?: Skill;
 };
 
 export type UserRoadmapNodeState = {

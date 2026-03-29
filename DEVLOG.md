@@ -173,22 +173,30 @@ Canvas-style workflow nodes (roadmap.sh–style layout) with per-user completion
 - [x] `app/(dashboard)/roadmaps/[id]/page.tsx` + `components/roadmaps/roadmap-workflow-canvas.tsx` — Framer Motion drag (owners), checkbox completion, add/edit/delete nodes
 - [x] `roadmaps-client.tsx` — **Open** link to detail page; tertiary **glow** on active roadmap card; step count label in graph mode
 
-### Phase 2D — Roadmap Graph System (Update)
+### Phase 2D — Roadmap Graph System (Node Actions)
 
-* [x] Node connections (edges) implemented
-* [x] React Flow integration (handles, onConnect)
-* [x] `roadmap_edges` persistence (DB + fetch)
-* [x] Multiple connections per node supported
-* [x] Styled edges (design system compliant)
+* [x] Double-click node edit (modal)
+* [x] Node update (title, skills)
+* [x] Node delete with cascade (edges, skills)
+* [x] Skill linking (existing + create new)
+* [x] Node completion toggle → XP distribution
+* [x] Idempotent XP logic
 
 **Files updated:**
-* `components/roadmaps/roadmap-workflow-canvas.tsx`
+* `supabase/migrations/006_roadmap_node_skills.sql` (schema update)
+* `types/database.ts` (new types)
+* `components/roadmaps/roadmap-workflow-canvas.tsx` (edit handlers, trigger modal)
+* `components/roadmaps/roadmap-node-edit-modal.tsx` (new modal component)
+* `app/api/roadmaps/[id]/nodes/[nodeId]/route.ts` (PATCH + custom skills, DELETE)
+* `app/api/roadmaps/[id]/nodes/[nodeId]/complete/route.ts` (API to award XP)
+* `lib/progression.ts` (distribution logic for XP to all node skills)
 
 **Notes:**
 * Connections are created via React Flow's `onConnect`, utilizing `Position.Top` and `Position.Bottom` handles for a vertical flow.
-* Optimistic UI additions apply edge styles automatically. Edges support multiple outbound connections.
-* Duplicate edges and self-loop connections are prevented in the `onConnect` callback.
-* DB persistence is handled via `/api/roadmaps/[id]/edges`.
+* Multiple connections per node supported. Duplicate edges and self-loop connections are prevented in the `onConnect` callback.
+* Double click on any node opens the `RoadmapNodeEditModal` which allows assigning multiple skills (and creating custom ones inline).
+* Checking off a node now distributes +10 XP across all linked skills uniformly, modeled after project completion logic.
+* Deleting a node cascades and drops any incoming/outgoing edges via `ON DELETE CASCADE`.
 
 ### Phase 3 — Gamification & Polish
 - [ ] Streak system (daily tracking, freeze feature)

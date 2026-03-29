@@ -58,8 +58,8 @@ export async function POST(
   }
 
   let xpAwarded = 0;
-  if (completed && !wasCompleted && node.skill_id) {
-    const xpRes = await awardRoadmapNodeCompletionXP(supabase, user.id, params.nodeId, node.skill_id);
+  if (completed && !wasCompleted) {
+    const xpRes = await awardRoadmapNodeCompletionXP(supabase, user.id, params.nodeId);
     if (xpRes.success && xpRes.xpAwarded) {
       xpAwarded = xpRes.xpAwarded;
     }

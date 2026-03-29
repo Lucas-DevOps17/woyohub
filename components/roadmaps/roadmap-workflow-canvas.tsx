@@ -21,6 +21,7 @@ import ReactFlow, {
 } from "reactflow";
 import "reactflow/dist/style.css";
 import type { SkillOption } from "@/components/roadmaps/roadmap-form-modal";
+import { RoadmapNodeEditModal } from "@/components/roadmaps/roadmap-node-edit-modal";
 
 // NOTE: this is a subset of the full DB type
 export type WorkflowNode = {
@@ -176,6 +177,47 @@ export function RoadmapWorkflowCanvas({
       target: e.target_node_id,
     }))
   );
+
+  const [editNodeId, setEditNodeId] = useState<string | null>(null);
+
+  const onNodeDoubleClick = useCallback(
+    (event: React.MouseEvent, node: any) => {
+      if (!isOwner) return;
+      setEditNodeId(node.id);
+    },
+    [isOwner]
+  );
+
+  const handleSaveNode = async (nodeId: string, updates: any) => {
+    const res = await fetch(`/api/roadmaps/${roadmapId}/nodes/${nodeId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updates),
+    });
+    
+    if (!res.ok) {
+      const j = await res.json();
+      throw new Error(j.error || "Failed to save node");
+    }
+    
+    router.refresh(); // Or optimistically update the node in local state
+    setEditNodeId(null);
+  };
+
+  const handleDeleteNode = async (nodeId: string) => {
+    const res = await fetch(`/api/roadmaps/${roadmapId}/nodes/${nodeId}`, {
+      method: "DELETE",
+    });
+    
+    if (!res.ok) {
+      const j = await res.json();
+      throw new Error(j.error || "Failed to delete node");
+    }
+    
+    setNodes((nds) => nds.filter((n) => n.id !== nodeId));
+    setEdges((eds) => eds.filter((e) => e.source !== nodeId && e.target !== nodeId));
+    setEditNodeId(null);
+  };
 
   const onConnect = useCallback(
     async (params: Connection) => {
@@ -342,6 +384,7 @@ export function RoadmapWorkflowCanvas({
           onConnect={onConnect}
           onEdgesDelete={onEdgesDelete}
           onNodeDragStop={onNodeDragStop}
+          onNodeDoubleClick={onNodeDoubleClick}
           nodeTypes={nodeTypes}
           nodesDraggable={isOwner}
           nodesConnectable={isOwner}
@@ -352,7 +395,15 @@ export function RoadmapWorkflowCanvas({
         </ReactFlow>
       </div>
 
-      {/* EDIT MODAL TO BE RE-IMPLEMENTED */}
+      {/* Edit Modal */}
+      <RoadmapNodeEditModal
+        open={editNodeId !== null}
+        onClose={() => setEditNodeId(null)}
+        node={nodes.find((n) => n.id === editNodeId)?.data as WorkflowNode | null}
+        skills={skills}
+        onSave={handleSaveNode}
+        onDelete={handleDeleteNode}
+      />
     </Fragment>
   );
 }

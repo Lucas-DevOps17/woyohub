@@ -56,24 +56,71 @@ export async function PATCH(
     patch.title = t;
   }
   if (body.description !== undefined) {
-    patch.description =
-      typeof body.description === "string" ? body.description.trim() || null : null;
-  }
-  if (body.skill_id !== undefined) {
-    patch.skill_id =
-      typeof body.skill_id === "string" && body.skill_id ? body.skill_id : null;
+    if (body.description === null) {
+      patch.description = null;
+    } else if (typeof body.description === "string") {
+      patch.description = body.description.trim() || null;
+    }
   }
   if (typeof body.x === "number" && Number.isFinite(body.x)) patch.x = body.x;
   if (typeof body.y === "number" && Number.isFinite(body.y)) patch.y = body.y;
 
-  if (Object.keys(patch).length === 0) {
-    return NextResponse.json({ error: "No fields to update" }, { status: 400 });
+  if (Object.keys(patch).length > 0) {
+    const { error } = await supabase.from("roadmap_nodes").update(patch).eq("id", params.nodeId);
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
   }
 
-  const { error } = await supabase.from("roadmap_nodes").update(patch).eq("id", params.nodeId);
+  // Handle skills update
+  let skillIds: string[] = [];
+  if (Array.isArray(body.skills)) {
+    skillIds = body.skills.filter((id) => typeof id === "string" && id.length > 0);
+  }
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+  // Handle new skill creation
+  if (typeof body.new_skill_name === "string" && body.new_skill_name.trim()) {
+    const { data: insertedSkill, error: skillInsertError } = await supabase
+      .from("skills")
+      .insert({
+        name: body.new_skill_name.trim(),
+        icon: typeof body.new_skill_icon === "string" ? body.new_skill_icon.trim() || null : null,
+        category: "Custom",
+      })
+      .select("id")
+      .single();
+
+    if (skillInsertError) {
+      return NextResponse.json({ error: "Failed to create new skill" }, { status: 400 });
+    }
+    if (insertedSkill) {
+      skillIds.push(insertedSkill.id);
+    }
+  }
+
+  if (Array.isArray(body.skills) || typeof body.new_skill_name === "string") {
+    // Delete existing skills
+    const { error: deleteError } = await supabase
+      .from("roadmap_node_skills")
+      .delete()
+      .eq("node_id", params.nodeId);
+
+    if (deleteError) {
+      return NextResponse.json({ error: deleteError.message }, { status: 400 });
+    }
+
+    if (skillIds.length > 0) {
+      const { error: insertError } = await supabase.from("roadmap_node_skills").insert(
+        skillIds.map((skillId) => ({
+          node_id: params.nodeId,
+          skill_id: skillId,
+        }))
+      );
+
+      if (insertError) {
+        return NextResponse.json({ error: insertError.message }, { status: 400 });
+      }
+    }
   }
 
   return NextResponse.json({ success: true });

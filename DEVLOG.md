@@ -229,6 +229,15 @@ Canvas-style workflow nodes (roadmap.sh–style layout) with per-user completion
 
 ### Phase 4 — Advanced
 - [ ] Full skill graph visualization (beyond roadmap workflow canvas)
+### Phase 3D — Course CRUD, XP Consistency, & Achievements Engine ✅ Complete
+- [x] Full CRUD operations for Courses (Edit & Delete) + REST integration.
+- [x] Inline CRUD operations for Learning Logs (Edit, update units, update summary/skills, Delete).
+- [x] **Source-of-truth XP Recompute Engine**: Added Postgres RPC `recompute_user_xp` to idempotently reconstruct XP / Levels from atomic completed elements. Integrated across Course DELETES, Log edits/deletes, Project toggles, and Roadmap unchecks!
+- [x] Expanded Achievement Dictionary (118+ unique achievements across Progress, Streaks, Courses, Logs, Projects, Roadmaps, Nodes, Skills, and Quirks).
+- [x] Auto-unlock evaluator rewritten to support heuristics spanning the entire DB array, including time-based (Night Owl / Early Bird).
+- [x] UI State Updates & Toast bindings upon edit unlocks.
+
+### Phase 4 — Advanced
 - [ ] AI-powered roadmap recommendations (Claude API)
 - [ ] Google Calendar integration for study sessions
 - [ ] GitHub integration (auto-detect projects)

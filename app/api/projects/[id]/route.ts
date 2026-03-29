@@ -80,6 +80,10 @@ export async function PUT(
     }
   }
 
+  // Recompute XP because status or skills might have changed
+  const { error: rpcError } = await supabase.rpc("recompute_user_xp", { p_user_id: user.id });
+  if (rpcError) console.error("Failed to recompute XP:", rpcError);
+
   return NextResponse.json({ success: true });
 }
 
@@ -104,6 +108,10 @@ export async function DELETE(
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
+
+  // Recompute XP to handle removed project
+  const { error: rpcErrorDel } = await supabase.rpc("recompute_user_xp", { p_user_id: user.id });
+  if (rpcErrorDel) console.error("Failed to recompute XP:", rpcErrorDel);
 
   return NextResponse.json({ success: true });
 }

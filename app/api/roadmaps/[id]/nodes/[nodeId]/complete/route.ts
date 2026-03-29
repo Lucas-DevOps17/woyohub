@@ -63,6 +63,12 @@ export async function POST(
     if (xpRes.success && xpRes.xpAwarded) {
       xpAwarded = xpRes.xpAwarded;
     }
+  } else if (!completed && wasCompleted) {
+    // If we're unchecking a completed node, recompute the XP source of truth!
+    const { error: rpcError } = await supabase.rpc("recompute_user_xp", { p_user_id: user.id });
+    if (rpcError) {
+      console.error("Failed to recompute XP:", rpcError);
+    }
   }
 
   return NextResponse.json({ success: true, xp_awarded: xpAwarded });

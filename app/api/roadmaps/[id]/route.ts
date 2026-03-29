@@ -122,5 +122,11 @@ export async function DELETE(
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
+  // Recalculate XP to handle removed nodes/skills
+  const { error: rpcError } = await supabase.rpc("recompute_user_xp", { p_user_id: user.id });
+  if (rpcError) {
+    console.error("Failed to recompute XP:", rpcError);
+  }
+
   return NextResponse.json({ success: true });
 }

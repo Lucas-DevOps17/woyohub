@@ -7,7 +7,7 @@ import { calculateLevel, type UserProfile } from "@/types";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { MoreVertical, Edit, Trash2 } from "lucide-react";
-import { ProjectCard, type ProjectDisplay } from "@/components/projects/project-card";
+
 
 type Project = {
   id: string;

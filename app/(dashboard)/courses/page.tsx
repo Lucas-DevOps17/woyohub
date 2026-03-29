@@ -92,7 +92,7 @@ export default function CoursesPage() {
         .order("created_at", { ascending: false }),
       supabase
         .from("user_skills")
-        .select("skill_id, skill:skills(id, name, icon)")
+        .select("skill_id, xp")
         .eq("user_id", user.id)
         .order("xp", { ascending: false }),
       supabase.from("skills").select("id, name, icon").eq("user_id", user.id).order("name"),
@@ -101,15 +101,21 @@ export default function CoursesPage() {
     setProfile(profileRes.data);
 
     const skillMap = new Map<string, SkillTag>();
+    const trackedSkillIds = (userSkillsRes.data || []).map((entry) => entry.skill_id).filter(Boolean);
 
-    for (const entry of userSkillsRes.data || []) {
-      const skill = Array.isArray((entry as any).skill) ? (entry as any).skill[0] : (entry as any).skill;
-      if (!skill?.id) continue;
-      skillMap.set(skill.id, {
-        id: skill.id,
-        name: skill.name,
-        icon: skill.icon ?? null,
-      });
+    if (trackedSkillIds.length > 0) {
+      const { data: trackedSkillRows } = await supabase
+        .from("skills")
+        .select("id, name, icon")
+        .in("id", trackedSkillIds);
+
+      for (const skill of trackedSkillRows || []) {
+        skillMap.set(skill.id, {
+          id: skill.id,
+          name: skill.name,
+          icon: skill.icon ?? null,
+        });
+      }
     }
 
     for (const skill of customSkillsRes.data || []) {
